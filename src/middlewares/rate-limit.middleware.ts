@@ -6,7 +6,9 @@ import { buildMetadata, errorResponse } from '@common/utils/response-builder';
 const DEFAULT_TTL_SECONDS = 60;
 const DEFAULT_MAX_REQUESTS = 120;
 
-type RequestWithContext = Request & { requestId?: string };
+interface RequestWithContext extends Request {
+  requestId?: string;
+}
 
 type RateLimitEntry = {
   count: number;
@@ -70,7 +72,7 @@ export class RateLimitMiddleware implements NestMiddleware {
 
   private getClientKey(request: Request): string {
     const forwardedFor = request.header('x-forwarded-for')?.split(',')[0]?.trim();
-    return forwardedFor || request.ip || 'unknown';
+    return forwardedFor ?? request.ip ?? 'unknown';
   }
 
   private pruneExpired(now: number): void {
