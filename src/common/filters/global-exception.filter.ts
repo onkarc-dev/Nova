@@ -1,25 +1,41 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { Request, Response } from 'express';
 import { ErrorCode } from '@common/enums/error-code.enum';
+import { appLogger } from '@common/logging/app-logger';
 import { buildMetadata, errorResponse } from '@common/utils/response-builder';
+
+type RequestWithContext = Request & {
+  requestId?: string;
+  user?: { id?: string; sub?: string };
+};
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(GlobalExceptionFilter.name);
-
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
-    const request = ctx.getRequest<Request & { requestId?: string }>();
+    const request = ctx.getRequest<RequestWithContext>();
     const response = ctx.getResponse<Response>();
     const status = this.getStatus(exception);
     const code = this.getCode(exception, status);
     const message = this.getMessage(exception, status);
+    const userId = request.user?.id ?? request.user?.sub;
+
+    const logPayload = {
+      requestId: request.requestId,
+      userId,
+      method: request.method,
+      path: request.originalUrl,
+      statusCode: status,
+      errorCode: code,
+      errorName: exception instanceof Error ? exception.name : 'UnknownError',
+      ...(process.env.NODE_ENV !== 'production' && exception instanceof Error ? { stack: exception.stack } : {}),
+    };
 
     if (status >= 500) {
-      this.logger.error({ exception, requestId: request.requestId, path: request.originalUrl }, message);
+      appLogger.error(logPayload, message);
     } else {
-      this.logger.warn({ exception, requestId: request.requestId, path: request.originalUrl }, message);
+      appLogger.warn(logPayload, message);
     }
 
     response
@@ -54,7 +70,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private getMessage(exception: unknown, status: number): string {
     if (exception instanceof HttpException) {
       const response = exception.getResponse();
-      if (typeof response === 'object' && 'message' in response) {
+      if (typeof response === 'object' && response !== null && 'message' in response) {
         const { message } = response;
         return Array.isArray(message) ? message.join(', ') : String(message);
       }
