@@ -4,9 +4,9 @@
   "private": true,
   "description": "Nova production-grade enterprise e-commerce platform foundation.",
   "scripts": {
-    "start": "node dist/main.js",
-    "start:dev": "nest start --watch",
-    "start:prod": "node dist/main.js",
+    "start": "node --env-file=.env dist/main.js",
+    "start:dev": "node --env-file=.env ./node_modules/@nestjs/cli/bin/nest.js start --watch",
+    "start:prod": "node --env-file=.env dist/main.js",
     "build": "nest build",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
@@ -15,18 +15,20 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
-    "db:generate": "node --env-file=.env.example ./node_modules/prisma/build/index.js generate --schema prisma/schema.prisma",
-    "db:validate": "node --env-file=.env.example ./node_modules/prisma/build/index.js validate --schema prisma/schema.prisma",
-    "db:format": "node --env-file=.env.example ./node_modules/prisma/build/index.js format --schema prisma/schema.prisma",
-    "db:migrate:dev": "node --env-file=.env.example ./node_modules/prisma/build/index.js migrate dev --schema prisma/schema.prisma",
-    "db:migrate:deploy": "node --env-file=.env.example ./node_modules/prisma/build/index.js migrate deploy --schema prisma/schema.prisma",
-    "db:studio": "node --env-file=.env.example ./node_modules/prisma/build/index.js studio --schema prisma/schema.prisma",
-    "db:seed": "tsx prisma/seed.ts",
-    "docker:dev": "docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build",
+    "db:generate": "node --env-file=.env ./node_modules/prisma/build/index.js generate --schema prisma/schema.prisma",
+    "db:validate": "node --env-file=.env ./node_modules/prisma/build/index.js validate --schema prisma/schema.prisma",
+    "db:format": "node --env-file=.env ./node_modules/prisma/build/index.js format --schema prisma/schema.prisma",
+    "db:migrate:dev": "node --env-file=.env ./node_modules/prisma/build/index.js migrate dev --schema prisma/schema.prisma",
+    "db:migrate:deploy": "node --env-file=.env ./node_modules/prisma/build/index.js migrate deploy --schema prisma/schema.prisma",
+    "db:migrate:status": "node --env-file=.env ./node_modules/prisma/build/index.js migrate status --schema prisma/schema.prisma",
+    "db:migrate:check": "npm run db:validate && npm run db:migrate:status",
+    "db:studio": "node --env-file=.env ./node_modules/prisma/build/index.js studio --schema prisma/schema.prisma",
+    "db:seed": "node --env-file=.env ./node_modules/tsx/dist/cli.mjs prisma/seed.ts",
+    "docker:dev": "docker compose up --build",
     "docker:prod": "docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "node --env-file=.env ./node_modules/tsx/dist/cli.mjs prisma/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.20",
