@@ -1,15 +1,32 @@
 # Nova Commerce
 
-Nova is being evolved into a production-grade, enterprise e-commerce platform. This repository currently contains the foundational database and architecture contracts that future frontend and backend milestones must build on without duplicating domain concepts.
+Nova is being evolved into a production-grade, full marketplace platform. It is not only a backend API: the target product includes a customer storefront, seller dashboard, admin dashboard, backend/API, and production operations track.
 
 ## Current milestone
 
-The first milestone establishes the persistence foundation for core commerce domains:
+The backend foundation establishes persistence and API contracts for core commerce domains:
 
 - Identity, RBAC, refresh-token sessions, addresses, and auditability.
 - Catalog management for products, categories, brands, variants, images, inventory, and warehouses.
 - Shopper journeys for carts, wishlists, orders, payments, coupons, reviews, notifications, invoices, returns, refunds, search history, and recently viewed products.
 - Operational capabilities for CMS pages, settings, analytics events, support tickets, activity logs, and audit logs.
+
+Phase F1 introduces the production customer web foundation under `apps/web`, plus shared packages under `packages/api-client` and `packages/types`. Phase F2 connects the customer storefront to public catalog APIs for product browsing, category browsing, product detail pages, and search/filter foundations. The ShopNova Lovable prototype is a visual/product reference only; Nova's production frontend is built cleanly in this repository.
+
+## Repository structure
+
+```text
+.
+├── src/                    # Current NestJS backend, kept at root during gradual monorepo migration
+├── prisma/                 # Prisma schema, migrations, and seed data
+├── apps/
+│   └── web/                # Next.js customer storefront foundation
+└── packages/
+    ├── api-client/         # Typed fetch client and normalized API errors
+    └── types/              # Shared marketplace DTO and API envelope types
+```
+
+Future structure should move the backend to `apps/api` only after scripts, Prisma paths, Docker, CI, and deployment commands are proven safe.
 
 ## Architecture principles
 
@@ -55,6 +72,28 @@ Required baseline variables:
 - `APP_URL`
 - `API_URL`
 
+Frontend environment:
+
+```bash
+cp apps/web/.env.example apps/web/.env.local
+```
+
+`apps/web/.env.example`:
+
+```text
+NEXT_PUBLIC_API_URL=http://localhost:4000
+```
+
+The web app calls the backend through `packages/api-client`. Public catalog calls currently target:
+
+- `GET /api/v1/catalog/products`
+- `GET /api/v1/catalog/products/search`
+- `GET /api/v1/catalog/products/:slug`
+- `GET /api/v1/catalog/categories`
+- `GET /api/v1/catalog/brands`
+
+If the backend is unavailable, storefront pages render an API-unavailable state instead of fake catalog data.
+
 ## Development standards
 
 - Preserve backward compatibility and avoid rewrites.
@@ -85,8 +124,30 @@ cp .env.example .env
 npm run db:generate
 npm run db:migrate:dev
 npm run db:seed
-npm run start:dev
+npm run dev:api
 ```
+
+Run the customer storefront:
+
+```bash
+npm run dev:web
+```
+
+Customer storefront routes:
+
+- `/`
+- `/products`
+- `/products/[slug]`
+- `/categories/[slug]`
+- `/login`
+- `/signup`
+- `/account`
+- `/account/orders`
+- `/account/wishlist`
+- `/account/payment-methods`
+- `/account/notifications`
+
+Not implemented yet: cart, checkout, payments, seller dashboard, and admin dashboard.
 
 ### Quality checks
 
@@ -95,6 +156,7 @@ npm run typecheck
 npm run lint
 npm run test
 npm run db:validate
+npm run build
 ```
 
 ### Docker
