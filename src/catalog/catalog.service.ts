@@ -3,7 +3,7 @@ import { Prisma, ProductStatus, type Brand, type Category, type Product } from '
 import { PrismaService } from '@database/prisma.service';
 import type { ListAdminCatalogDto, ListCatalogProductsDto } from './dto/catalog-query.dto';
 
-type PaginatedResult<T> = {
+interface PaginatedResult<T> {
   items: T[];
   pagination: {
     page: number;
@@ -11,15 +11,15 @@ type PaginatedResult<T> = {
     total: number;
     totalPages: number;
   };
-};
+}
 
-type ProductListItem = Product & {
+interface ProductListItem extends Product {
   category: Pick<Category, 'id' | 'name' | 'slug'>;
   brand: Pick<Brand, 'id' | 'name' | 'slug' | 'logoUrl'> | null;
   store: { id: string; name: string; slug: string };
   images: { id: string; url: string; altText: string; sortOrder: number; isPrimary: boolean }[];
   variants: { id: string; sku: string; name: string; priceCents: number; compareAtCents: number | null; currency: string; isActive: boolean }[];
-};
+}
 
 @Injectable()
 export class CatalogService {
@@ -32,17 +32,10 @@ export class CatalogService {
       ...(query.isActive === undefined ? { isActive: true } : { isActive: query.isActive }),
       ...(query.search ? { OR: [{ name: { contains: query.search, mode: 'insensitive' } }, { slug: { contains: query.search, mode: 'insensitive' } }] } : {}),
     };
-
     const [items, total] = await this.prisma.$transaction([
-      this.prisma.category.findMany({
-        where,
-        orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
+      this.prisma.category.findMany({ where, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }], skip: (page - 1) * limit, take: limit }),
       this.prisma.category.count({ where }),
     ]);
-
     return this.paginate(items, total, page, limit);
   }
 
@@ -53,56 +46,32 @@ export class CatalogService {
       ...(query.isActive === undefined ? { isActive: true } : { isActive: query.isActive }),
       ...(query.search ? { OR: [{ name: { contains: query.search, mode: 'insensitive' } }, { slug: { contains: query.search, mode: 'insensitive' } }] } : {}),
     };
-
     const [items, total] = await this.prisma.$transaction([
-      this.prisma.brand.findMany({
-        where,
-        orderBy: { name: 'asc' },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
+      this.prisma.brand.findMany({ where, orderBy: { name: 'asc' }, skip: (page - 1) * limit, take: limit }),
       this.prisma.brand.count({ where }),
     ]);
-
     return this.paginate(items, total, page, limit);
   }
 
   async listProducts(query: ListCatalogProductsDto): Promise<PaginatedResult<ProductListItem>> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
-    const where = await this.buildPublicProductWhere(query);
-    const orderBy = this.getProductOrder(query.sort);
-
+    const where = this.buildPublicProductWhere(query);
     const [items, total] = await this.prisma.$transaction([
-      this.prisma.product.findMany({
-        where,
-        include: this.productListInclude(),
-        orderBy,
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
+      this.prisma.product.findMany({ where, include: this.productListInclude(), orderBy: this.getProductOrder(query.sort), skip: (page - 1) * limit, take: limit }),
       this.prisma.product.count({ where }),
     ]);
-
     return this.paginate(items, total, page, limit);
   }
 
   async getProductBySlug(slug: string): Promise<ProductListItem> {
-    const product = await this.prisma.product.findFirst({
-      where: { slug, status: ProductStatus.ACTIVE, store: { isVerified: true } },
-      include: this.productListInclude(),
-    });
-
+    const product = await this.prisma.product.findFirst({ where: { slug, status: ProductStatus.ACTIVE, store: { isVerified: true } }, include: this.productListInclude() });
     if (!product) throw new NotFoundException('Product not found.');
     return product;
   }
 
-  private async buildPublicProductWhere(query: ListCatalogProductsDto): Promise<Prisma.ProductWhereInput> {
-    const where: Prisma.ProductWhereInput = {
-      status: ProductStatus.ACTIVE,
-      store: { isVerified: true },
-    };
-
+  private buildPublicProductWhere(query: ListCatalogProductsDto): Prisma.ProductWhereInput {
+    const where: Prisma.ProductWhereInput = { status: ProductStatus.ACTIVE, store: { isVerified: true } };
     if (query.search) {
       where.OR = [
         { name: { contains: query.search, mode: 'insensitive' } },
@@ -110,25 +79,15 @@ export class CatalogService {
         { slug: { contains: query.search, mode: 'insensitive' } },
       ];
     }
-
     if (query.categorySlug) where.category = { slug: query.categorySlug, isActive: true };
     if (query.brandSlug) where.brand = { slug: query.brandSlug, isActive: true };
     if (query.storeSlug) where.store = { slug: query.storeSlug, isVerified: true };
-
     return where;
   }
 
   private getProductOrder(sort: ListCatalogProductsDto['sort']): Prisma.ProductOrderByWithRelationInput[] {
-    switch (sort) {
-      case 'name_asc':
-        return [{ name: 'asc' }];
-      case 'price_asc':
-      case 'price_desc':
-        return [{ createdAt: 'desc' }];
-      case 'newest':
-      default:
-        return [{ createdAt: 'desc' }];
-    }
+    if (sort === 'name_asc') return [{ name: 'asc' }];
+    return [{ createdAt: 'desc' }];
   }
 
   private productListInclude() {
@@ -146,14 +105,6 @@ export class CatalogService {
   }
 
   private paginate<T>(items: T[], total: number, page: number, limit: number): PaginatedResult<T> {
-    return {
-      items,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.max(1, Math.ceil(total / limit)),
-      },
-    };
+    return { items, pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) } };
   }
 }
