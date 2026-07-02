@@ -70,7 +70,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
   private getMessage(exception: unknown, status: number): string {
     if (exception instanceof HttpException) {
       const response = exception.getResponse();
-      if (typeof response === 'object' && response !== null && 'message' in response) {
+      if (typeof response === 'object' && 'message' in response) {
         const { message } = response;
         return Array.isArray(message) ? message.join(', ') : String(message);
       }
