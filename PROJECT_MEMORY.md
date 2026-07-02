@@ -5,6 +5,117 @@
 Single source of truth for the project. Update this file after every
 coding session.
 
+## Full Platform Direction Update - 2026-07-03
+
+Nova is a full marketplace platform, not only a backend API. The backend
+foundation remains important, but the product goal is a complete buyer,
+seller, admin, and operations platform comparable in scope to Trendyol, Amazon,
+and Flipkart.
+
+The project now runs on five parallel tracks:
+
+- Track A: Backend/API
+- Track B: Customer Web Frontend
+- Track C: Seller Dashboard
+- Track D: Admin Dashboard
+- Track E: DevOps/Production
+
+The ShopNova Lovable app at `https://shop-nova-global.lovable.app` is a
+visual and product reference only. It is not production code and should not be
+copied into the repository as an implementation source. Nova's production
+frontend must be built cleanly inside this repo with typed integration points,
+owned UI components, tested workflows, and production-ready environment
+configuration.
+
+Preferred architecture is a monorepo so the platform can share UI,
+API-client, DTO/type, and config contracts without duplicating marketplace
+concepts. The recommended future structure is:
+
+- `apps/api`
+- `apps/web`
+- `apps/seller`
+- `apps/admin`
+- `packages/ui`
+- `packages/api-client`
+- `packages/types`
+- `packages/config`
+
+Immediate architecture decision: move to a monorepo gradually without breaking
+the existing backend. Keep the current NestJS backend at the repository root
+temporarily. Add new frontend and shared packages first, beginning with:
+
+- `apps/web`
+- `packages/api-client`
+- `packages/types`
+
+Future migration can move the current backend into `apps/api` after the
+workspace scripts, CI, Docker, Prisma paths, and deployment commands are proven
+safe.
+
+### Updated Full-Platform Roadmap
+
+Backend:
+
+- Phase 1: Engineering foundation - COMPLETE
+- Phase 2: Production hardening - COMPLETE
+- Phase 3A: Catalog backend - IN PROGRESS
+- Phase 4: Inventory/pricing
+- Phase 5: Cart/wishlist
+- Phase 6: Checkout/orders
+- Phase 7: Payments
+- Phase 8: Shipping/returns
+- Phase 9: Search/performance
+
+Frontend:
+
+- Phase F1: Frontend foundation - IN PROGRESS
+- Phase F2: Customer storefront
+- Phase F3: Auth/account integration
+- Phase F4: Seller dashboard
+- Phase F5: Admin dashboard
+- Phase F6: UX/performance polish
+
+DevOps:
+
+- CI/CD
+- Monitoring
+- Security
+- Deployment
+- Backups
+- Scaling
+
+### Full-Platform Gap Analysis - 2026-07-03
+
+Backend status:
+
+- Present: NestJS API shell, health/readiness endpoints, typed environment
+  validation, Prisma/PostgreSQL foundation, Redis/cache foundation, response
+  envelope, error handling, auth/register/login/refresh/logout/me, JWT guard,
+  role guard, user profile/address APIs, seller application/review/store
+  foundation, seller/store ownership schema, migrations, seed data, catalog
+  product/category/brand read endpoints, and focused unit/integration tests.
+- Partial or missing: full product CRUD, variant management, inventory/pricing
+  workflows, cart APIs, wishlist APIs, checkout/order creation, payments,
+  reviews, notifications, admin moderation beyond seller review, full search,
+  image upload/object storage, rate-limit tuning, audit-log writes for
+  sensitive admin actions, and database-backed integration coverage for every
+  business flow.
+
+Frontend status:
+
+- Missing before Phase F1: production Next.js app, customer storefront,
+  seller dashboard, admin dashboard, auth screens, product listing UI, product
+  detail UI, cart, checkout, account pages, orders, wishlist, payment methods,
+  notifications, responsive layout, and shared UI conventions.
+
+Integration status:
+
+- Present: API envelope conventions and backend CORS/env settings.
+- Missing before Phase F1: shared API client, shared DTO/type package,
+  frontend environment example, auth token attach support, refresh-token-ready
+  client structure, frontend loading/empty/error states, and typed contract
+  reuse between apps.
+
 ## Vision
 
 Build a production-grade regional marketplace inspired by Trendyol,
@@ -1247,3 +1358,316 @@ Add database-backed integration test coverage for the implemented foundations:
 2. User profile and address ownership flows.
 3. Seller application and admin review flows.
 4. Keep product/catalog APIs untouched until these integration tests are green.
+
+---
+
+# Full Platform Frontend Foundation Session - 2026-07-03
+
+## Completed
+
+Updated Nova's project direction from backend-first to full marketplace
+platform and implemented the safe Phase F1 customer frontend foundation.
+
+## Direction Update
+
+- Nova is now documented as a full marketplace platform, not only a backend
+  API.
+- Added five parallel tracks: Backend/API, Customer Web Frontend, Seller
+  Dashboard, Admin Dashboard, and DevOps/Production.
+- Documented the ShopNova Lovable app as a visual/product reference only, not
+  production source code.
+- Confirmed the preferred architecture is a gradual monorepo migration.
+- Kept the current NestJS backend at the repository root to avoid breaking
+  scripts, Prisma paths, Docker, tests, or deployment assumptions.
+- Added `apps/web`, `packages/api-client`, and `packages/types` as the first
+  monorepo step.
+
+## Full-Platform Gap Analysis
+
+Backend present:
+
+- NestJS shell, health/readiness, environment validation, Prisma/PostgreSQL,
+  Redis/cache, API envelopes, auth, JWT/RBAC guards, users/profile/address,
+  seller application/review/store foundation, seller/store ownership schema,
+  migrations, seed data, catalog read endpoints, and tests.
+
+Backend gaps:
+
+- Product CRUD, variant management, inventory/pricing workflows, cart,
+  wishlist, checkout/orders, payments, reviews, notifications, richer admin
+  workflows, search, uploads/images, audit-log writes for sensitive actions,
+  and broad database-backed integration coverage.
+
+Frontend gaps before this session:
+
+- No production Next.js customer app, seller dashboard, admin dashboard, auth
+  screens, storefront screens, account pages, cart, checkout, wishlist, payment
+  methods, or notification UI.
+
+Integration gaps before this session:
+
+- No shared API client, shared DTO/type package, frontend env example, auth
+  token attach support, refresh-token-ready client structure, or typed frontend
+  contract reuse.
+
+## Frontend Added
+
+Created `apps/web` using Next.js, TypeScript, Tailwind CSS, and a
+shadcn/ui-ready structure.
+
+Routes added:
+
+- `/`
+- `/login`
+- `/signup`
+- `/account`
+- `/account/orders`
+- `/account/wishlist`
+- `/account/payment-methods`
+- `/account/notifications`
+
+UI added:
+
+- Header with search, account, wishlist, notifications, cart, and department
+  navigation.
+- Home hero inspired by the ShopNova marketplace direction.
+- Product grid shell with responsive product cards.
+- Footer.
+- Login and signup shells.
+- Account dashboard, orders, wishlist, payment methods, and notifications
+  shells.
+
+## Shared Packages Added
+
+`packages/types`:
+
+- API envelope types.
+- Pagination types.
+- Product, Category, Brand, User, Seller, Store, product image, and variant DTO
+  types.
+
+`packages/api-client`:
+
+- Environment-based API URL resolution.
+- Typed request helper.
+- Error normalization with `NovaApiError`.
+- Bearer token attachment hook.
+- Unauthorized callback hook for refresh-token-ready auth integration.
+
+## Root Scripts Updated
+
+Added:
+
+- `npm run dev:api`
+- `npm run dev:web`
+- `npm run build:api`
+- `npm run build:web`
+
+Updated full-repo scripts:
+
+- `npm run build` now builds backend and web.
+- `npm run typecheck` now checks backend and all workspaces.
+- `npm run lint` now lints backend and all workspaces.
+
+Preserved existing backend commands:
+
+- `npm run start:dev`
+- `npm run db:generate`
+- `npm run db:validate`
+- `npm run db:migrate:dev`
+- `npm run db:seed`
+
+## Files Changed
+
+- `.gitignore`
+- `PROJECT_MEMORY.md`
+- `README.md`
+- `eslint.config.mjs`
+- `package.json`
+- `package-lock.json`
+- `apps/web/**`
+- `packages/api-client/**`
+- `packages/types/**`
+
+## Verification
+
+Passed:
+
+- `npm.cmd install`
+- `npm.cmd run db:generate`
+- `npm.cmd run db:validate`
+- `npm.cmd run typecheck`
+- `npm.cmd run lint`
+- `npm.cmd run test`
+- `npm.cmd run build`
+- `Invoke-WebRequest http://localhost:3000 -UseBasicParsing`
+
+Local dev server:
+
+- `npm.cmd run dev:web` started successfully in the background.
+- `http://localhost:3000` returned HTTP 200.
+
+Notes:
+
+- Prisma still emits the non-blocking `package.json#prisma` deprecation warning
+  for Prisma 7.
+- Jest still emits the existing non-blocking worker teardown warning after
+  tests pass.
+- `npm install` reports 26 dependency audit vulnerabilities
+  (3 low, 16 moderate, 7 high). No audit fix was run because it may introduce
+  broader dependency changes.
+
+## Remaining Risks
+
+- Frontend pages are static shells and are not yet connected to live backend
+  data.
+- Auth forms do not yet submit to the API or persist tokens.
+- Cart, checkout, payments, and seller/admin dashboards are intentionally out
+  of scope for Phase F1.
+- Shared DTOs should be reconciled against exact backend response shapes as
+  catalog and account integration proceeds.
+
+## Next Recommended Batch
+
+Proceed to Phase F2 Customer Storefront:
+
+1. Connect home/category/product listing shells to catalog endpoints.
+2. Add loading, empty, and error states around API calls.
+3. Add product detail route shell and typed API fetches.
+4. Add auth token storage/session handling only when moving into Phase F3.
+
+GO for continuing Phase F2. NO-GO for cart, checkout, payments, seller
+dashboard, or admin dashboard until storefront/catalog integration is stable.
+
+---
+
+# Customer Storefront Catalog Integration Session - 2026-07-03
+
+## Completed
+
+Implemented Phase F2 customer storefront and catalog integration only. Work was
+performed inside the Nova repository and did not touch other projects.
+
+## Repository Identity And Safety
+
+- Confirmed working directory:
+  `C:\Users\Admin\Documents\Codex\2026-07-03\onkarc-dev-nova-https-github-com\work\Nova`.
+- Confirmed git remote: `https://github.com/onkarc-dev/Nova.git`.
+- Confirmed package identity: `nova-commerce`.
+- Ran the forbidden wrong-project term scan before coding and found zero
+  matches.
+
+## Backend Catalog APIs Used
+
+Public catalog endpoints found and integrated:
+
+- `GET /api/v1/catalog/products`
+- `GET /api/v1/catalog/products/search`
+- `GET /api/v1/catalog/products/:slug`
+- `GET /api/v1/catalog/categories`
+- `GET /api/v1/catalog/brands`
+
+Admin catalog endpoints remain guarded and were not used by the customer
+frontend:
+
+- `GET /api/v1/admin/catalog/categories`
+- `GET /api/v1/admin/catalog/brands`
+
+## Frontend Added Or Updated
+
+Routes added/updated:
+
+- `/`
+- `/products`
+- `/products/[slug]`
+- `/categories/[slug]`
+
+Existing Phase F1 routes preserved:
+
+- `/login`
+- `/signup`
+- `/account`
+- `/account/orders`
+- `/account/wishlist`
+- `/account/payment-methods`
+- `/account/notifications`
+
+Customer storefront behavior:
+
+- Home page now loads live products and categories from the backend catalog API.
+- Product listing page supports keyword search, category slug, brand slug,
+  store slug, sort, and page query foundations supported by the backend DTO.
+- Category page filters products through `categorySlug`.
+- Product detail page loads products by slug.
+- Loading route states were added for catalog pages.
+- Empty states were added for no products/categories.
+- Error states were added for backend/API-unavailable conditions.
+- UI remains Nova marketplace-focused and does not implement cart, checkout,
+  payments, seller dashboard, or admin dashboard.
+
+## Shared Package Changes
+
+`packages/api-client`:
+
+- Added typed catalog functions for products, product search, product detail,
+  categories, and brands.
+- Added backend API envelope support for the real `success: true` /
+  `success: false` response shape.
+- Preserved legacy envelope tolerance.
+- Added normalized offline handling with `NovaApiError` status `0` and
+  `API_UNAVAILABLE`.
+- Kept `NEXT_PUBLIC_API_URL` / `API_URL` environment-based base URL handling.
+
+`packages/types`:
+
+- Aligned API envelopes with backend `ApiSuccessResponse` and
+  `ApiErrorResponse`.
+- Aligned product/category/brand/store DTOs with backend catalog shapes such as
+  `imageUrl`, `logoUrl`, `altText`, and `compareAtCents`.
+- Added `ListProductsQuery` and `ListCatalogQuery` types.
+- Kept pagination compatible with backend `page`, `limit`, `total`, and
+  `totalPages`.
+
+## Documentation Updated
+
+- `README.md` now documents Phase F2 catalog integration, public catalog
+  endpoints, storefront routes, and out-of-scope areas.
+- `apps/web/.env.example` now clarifies that `NEXT_PUBLIC_API_URL` is the
+  backend root URL.
+- `PROJECT_MEMORY.md` records this Phase F2 session.
+
+## Remaining Storefront Gaps
+
+- Product listing depends on seeded active products from verified stores.
+- Product detail images rely on backend image URLs; upload/storage integration
+  remains future work.
+- Category detail uses the slug route and product filter; dedicated category
+  metadata detail API does not exist yet.
+- Price sorting is accepted by the backend DTO but currently only newest and
+  name sorting are implemented in service ordering.
+- Auth/session integration remains Phase F3.
+- Cart, checkout, payments, seller dashboard, and admin dashboard remain
+  intentionally out of scope.
+
+## Verification
+
+Required verification to run after this session:
+
+- `npm install`
+- `npm run db:generate`
+- `npm run db:validate`
+- `npm run typecheck`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+- `npm run build:web`
+
+## Next Recommended Batch
+
+Proceed to Phase F3 only after Phase F2 is accepted:
+
+1. Wire login/signup forms to auth APIs.
+2. Add token/session storage strategy.
+3. Connect account overview to `/auth/me` and user profile APIs.
+4. Preserve cart, checkout, payments, seller dashboard, and admin dashboard for
+   later phases.

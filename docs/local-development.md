@@ -25,7 +25,7 @@ http://localhost:4000/api/v1/health
 
 ## Port notes
 
-The local compose override maps Nova PostgreSQL to Windows port 5433 so it does not conflict with other projects using 5432, such as QuantOS.
+The local compose override maps Nova PostgreSQL to Windows port 5433 so it does not conflict with other local PostgreSQL projects using 5432.
 
 The default local database URLs are:
 
