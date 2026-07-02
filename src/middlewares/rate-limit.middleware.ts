@@ -1,9 +1,10 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import type { NextFunction, Request, Response } from 'express';
 import { ErrorCode } from '@common/enums/error-code.enum';
 import { buildMetadata, errorResponse } from '@common/utils/response-builder';
-import type { Environment } from '@config/environment';
+
+const DEFAULT_TTL_SECONDS = 60;
+const DEFAULT_MAX_REQUESTS = 120;
 
 type RequestWithContext = Request & { requestId?: string };
 
@@ -12,16 +13,25 @@ type RateLimitEntry = {
   resetAt: number;
 };
 
+function parseNonNegativeInteger(value: string | undefined, fallback: number): number {
+  if (!value) return fallback;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 0) return fallback;
+  return parsed;
+}
+
+function parsePositiveInteger(value: string | undefined, fallback: number): number {
+  if (!value) return fallback;
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) return fallback;
+  return parsed;
+}
+
 @Injectable()
 export class RateLimitMiddleware implements NestMiddleware {
   private readonly requests = new Map<string, RateLimitEntry>();
-  private readonly ttlMs: number;
-  private readonly maxRequests: number;
-
-  constructor(config: ConfigService<Environment, true>) {
-    this.ttlMs = config.get('RATE_LIMIT_TTL_SECONDS', { infer: true }) * 1000;
-    this.maxRequests = config.get('RATE_LIMIT_MAX', { infer: true });
-  }
+  private readonly ttlMs = parsePositiveInteger(process.env.RATE_LIMIT_TTL_SECONDS, DEFAULT_TTL_SECONDS) * 1000;
+  private readonly maxRequests = parseNonNegativeInteger(process.env.RATE_LIMIT_MAX, DEFAULT_MAX_REQUESTS);
 
   use(request: RequestWithContext, response: Response, next: NextFunction): void {
     if (this.maxRequests <= 0) {
