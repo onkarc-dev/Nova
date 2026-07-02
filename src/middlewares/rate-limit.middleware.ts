@@ -10,10 +10,10 @@ interface RequestWithContext extends Request {
   requestId?: string;
 }
 
-type RateLimitEntry = {
+interface RateLimitEntry {
   count: number;
   resetAt: number;
-};
+}
 
 function parseNonNegativeInteger(value: string | undefined, fallback: number): number {
   if (!value) return fallback;
