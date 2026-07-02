@@ -3,7 +3,7 @@ import { Prisma, ProductStatus, type Brand, type Category, type Product } from '
 import { PrismaService } from '@database/prisma.service';
 import type { ListAdminCatalogDto, ListCatalogProductsDto } from './dto/catalog-query.dto';
 
-interface PaginatedResult<T> {
+export interface PaginatedResult<T> {
   items: T[];
   pagination: {
     page: number;
@@ -13,7 +13,7 @@ interface PaginatedResult<T> {
   };
 }
 
-interface ProductListItem extends Product {
+export interface ProductListItem extends Product {
   category: Pick<Category, 'id' | 'name' | 'slug'>;
   brand: Pick<Brand, 'id' | 'name' | 'slug' | 'logoUrl'> | null;
   store: { id: string; name: string; slug: string };
