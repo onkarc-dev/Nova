@@ -1,0 +1,10 @@
+services:
+  api:
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      TRUST_PROXY: "true"
+  postgres:
+    restart: unless-stopped
+  redis:
+    restart: unless-stopped
