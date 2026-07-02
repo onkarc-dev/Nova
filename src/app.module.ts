@@ -10,6 +10,7 @@ import { redisConfig } from '@config/redis.config';
 import { storageConfig } from '@config/storage.config';
 import { DatabaseModule } from '@database/database.module';
 import { HealthModule } from '@health/health.module';
+import { RateLimitMiddleware } from '@/middlewares/rate-limit.middleware';
 import { RequestIdMiddleware } from '@/middlewares/request-id.middleware';
 import { RequestLoggingMiddleware } from '@/middlewares/request-logging.middleware';
 import { QueueModule } from '@/queues/queue.module';
@@ -35,6 +36,6 @@ import { UsersModule } from '@/users/users.module';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(RequestIdMiddleware, RequestLoggingMiddleware).forRoutes('*');
+    consumer.apply(RequestIdMiddleware, RateLimitMiddleware, RequestLoggingMiddleware).forRoutes('*');
   }
 }
