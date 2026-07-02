@@ -35,19 +35,27 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
   private getCode(exception: unknown, status: number): ErrorCode {
     if (exception instanceof Prisma.PrismaClientKnownRequestError) return ErrorCode.DATABASE_ERROR;
-    if (status === HttpStatus.BAD_REQUEST) return ErrorCode.VALIDATION_ERROR;
-    if (status === HttpStatus.UNAUTHORIZED) return ErrorCode.AUTHENTICATION_ERROR;
-    if (status === HttpStatus.FORBIDDEN) return ErrorCode.AUTHORIZATION_ERROR;
-    if (status === HttpStatus.NOT_FOUND) return ErrorCode.NOT_FOUND;
-    if (status === HttpStatus.CONFLICT) return ErrorCode.CONFLICT;
-    return ErrorCode.INTERNAL_ERROR;
+    switch (status) {
+      case 400:
+        return ErrorCode.VALIDATION_ERROR;
+      case 401:
+        return ErrorCode.AUTHENTICATION_ERROR;
+      case 403:
+        return ErrorCode.AUTHORIZATION_ERROR;
+      case 404:
+        return ErrorCode.NOT_FOUND;
+      case 409:
+        return ErrorCode.CONFLICT;
+      default:
+        return ErrorCode.INTERNAL_ERROR;
+    }
   }
 
   private getMessage(exception: unknown, status: number): string {
     if (exception instanceof HttpException) {
       const response = exception.getResponse();
-      if (typeof response === 'object' && response !== null && 'message' in response) {
-        const message = (response as { message: unknown }).message;
+      if (typeof response === 'object' && 'message' in response) {
+        const { message } = response;
         return Array.isArray(message) ? message.join(', ') : String(message);
       }
       return exception.message;

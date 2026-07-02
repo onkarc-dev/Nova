@@ -13,6 +13,9 @@ import { HealthModule } from '@health/health.module';
 import { RequestIdMiddleware } from '@/middlewares/request-id.middleware';
 import { RequestLoggingMiddleware } from '@/middlewares/request-logging.middleware';
 import { QueueModule } from '@/queues/queue.module';
+import { AuthModule } from '@/auth/auth.module';
+import { SellersModule } from '@/sellers/sellers.module';
+import { UsersModule } from '@/users/users.module';
 
 @Module({
   imports: [
@@ -24,6 +27,9 @@ import { QueueModule } from '@/queues/queue.module';
     }),
     DatabaseModule,
     QueueModule,
+    AuthModule,
+    UsersModule,
+    SellersModule,
     HealthModule,
   ],
 })

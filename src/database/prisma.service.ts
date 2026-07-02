@@ -2,7 +2,10 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/commo
 import { Prisma, PrismaClient } from '@prisma/client';
 
 @Injectable()
-export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+export class PrismaService
+  extends PrismaClient<Prisma.PrismaClientOptions, 'query' | 'error' | 'warn'>
+  implements OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(PrismaService.name);
 
   constructor() {
@@ -18,8 +21,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         this.logger.debug({ query: event.query, duration: event.duration, params: event.params });
       }
     });
-    this.$on('error', (event: Prisma.LogEvent) => this.logger.error(event));
-    this.$on('warn', (event: Prisma.LogEvent) => this.logger.warn(event));
+    this.$on('error', (event: Prisma.LogEvent) => {
+      this.logger.error(event);
+    });
+    this.$on('warn', (event: Prisma.LogEvent) => {
+      this.logger.warn(event);
+    });
   }
 
   async onModuleInit(): Promise<void> {
@@ -35,7 +42,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     return true;
   }
 
-  transaction<T>(callback: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+  runInTransaction<T>(callback: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
     return this.$transaction(callback, { maxWait: 5_000, timeout: 10_000 });
   }
 }

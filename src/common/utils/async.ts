@@ -1,7 +1,9 @@
 export async function withTimeout<T>(promise: Promise<T>, milliseconds: number, message: string): Promise<T> {
   let timeoutId: NodeJS.Timeout | undefined;
   const timeout = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error(message)), milliseconds);
+    timeoutId = setTimeout(() => {
+      reject(new Error(message));
+    }, milliseconds);
   });
   try {
     return await Promise.race([promise, timeout]);

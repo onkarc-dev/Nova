@@ -19,7 +19,10 @@ async function bootstrap(): Promise<void> {
   const corsOrigins = config.get('CORS_ORIGINS', { infer: true });
   const trustProxy = config.get('TRUST_PROXY', { infer: true });
 
-  if (trustProxy) app.getHttpAdapter().getInstance().set('trust proxy', 1);
+  if (trustProxy) {
+    const httpInstance = app.getHttpAdapter().getInstance() as { set(name: string, value: number): void };
+    httpInstance.set('trust proxy', 1);
+  }
 
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   app.use(compression());
@@ -34,7 +37,7 @@ async function bootstrap(): Promise<void> {
 
   const port = config.get('PORT', { infer: true });
   await app.listen(port);
-  logger.log(`Nova API listening on port ${port}`);
+  logger.log(`Nova API listening on port ${String(port)}`);
 }
 
 void bootstrap();

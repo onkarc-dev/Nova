@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@database/prisma.service';
 import { RedisService } from '@/queues/redis.service';
 
-interface ComponentHealth {
+export interface ComponentHealth {
   status: 'up' | 'down';
   checkedAt: string;
 }

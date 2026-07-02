@@ -12,7 +12,9 @@ export class RedisService implements OnModuleDestroy {
       maxRetriesPerRequest: 3,
       enableReadyCheck: true,
     });
-    this.client.on('error', (error) => this.logger.error(error));
+    this.client.on('error', (error) => {
+      this.logger.error(error);
+    });
   }
 
   async connect(): Promise<void> {
@@ -29,6 +31,7 @@ export class RedisService implements OnModuleDestroy {
 
   async healthCheck(): Promise<boolean> {
     await this.connect();
-    return (await this.client.ping()) === 'PONG';
+    await this.client.ping();
+    return true;
   }
 }

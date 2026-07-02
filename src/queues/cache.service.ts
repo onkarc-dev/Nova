@@ -10,7 +10,7 @@ export class CacheService {
     return value ? (JSON.parse(value) as T) : null;
   }
 
-  async set<T>(key: string, value: T, ttlSeconds: number): Promise<void> {
+  async set(key: string, value: unknown, ttlSeconds: number): Promise<void> {
     await this.redis.getClient().set(key, JSON.stringify(value), 'EX', ttlSeconds);
   }
 
