@@ -111,7 +111,136 @@ export interface UserDto {
   lastName?: string | null;
   phone?: string | null;
   avatar?: string | null;
+  avatarUrl?: string | null;
+  status?: UserStatus;
   roles?: string[];
+}
+
+export type UserStatus = 'PENDING_VERIFICATION' | 'ACTIVE' | 'SUSPENDED' | 'DELETED';
+
+export interface AuthenticatedUserDto {
+  id: string;
+  email: string;
+  phone?: string | null;
+  firstName: string;
+  lastName: string;
+  status: UserStatus;
+  roles: string[];
+}
+
+export interface UserProfileDto {
+  id: string;
+  email: string;
+  phone: string | null;
+  firstName: string;
+  lastName: string;
+  avatarUrl: string | null;
+  status: UserStatus;
+  emailVerifiedAt?: string | null;
+  phoneVerifiedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface LoginRequestDto {
+  email: string;
+  password: string;
+}
+
+export interface RegisterRequestDto {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+}
+
+export interface AuthTokensDto {
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface AuthResponseDto extends AuthTokensDto {
+  user: AuthenticatedUserDto;
+}
+
+export interface RefreshTokenRequestDto {
+  refreshToken: string;
+}
+
+export interface LogoutResponseDto {
+  revoked: true;
+}
+
+export interface UpdateUserProfileDto {
+  firstName?: string;
+  lastName?: string;
+  phone?: string | null;
+  avatarUrl?: string | null;
+}
+
+export type AddressType = 'BILLING' | 'SHIPPING' | 'BOTH';
+
+export interface AddressDto {
+  id: string;
+  userId: string;
+  type: AddressType;
+  fullName: string;
+  phone: string;
+  line1: string;
+  line2?: string | null;
+  city: string;
+  state: string;
+  postalCode: string;
+  countryCode: string;
+  isDefault: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WishlistDto {
+  id: string;
+  name?: string | null;
+  items?: ProductDto[];
+}
+
+export interface CartItemDto {
+  id: string;
+  product: ProductDto;
+  variant: ProductVariantDto;
+  quantity: number;
+}
+
+export interface CartDto {
+  id: string;
+  items: CartItemDto[];
+  status?: 'ACTIVE' | 'CHECKED_OUT' | 'ABANDONED';
+}
+
+export interface OrderDto {
+  id: string;
+  orderNumber: string;
+  status: string;
+  totalCents: number;
+  createdAt?: string;
+}
+
+export interface CheckoutDraftDto {
+  cartId: string;
+  shippingAddressId?: string;
+  paymentIntegrationStatus: 'PENDING';
+}
+
+export interface PaymentMethodPlaceholderDto {
+  id?: string;
+  provider?: string;
+  status: 'NOT_CONFIGURED' | 'PENDING_PROVIDER';
+}
+
+export interface ReturnRequestPlaceholderDto {
+  orderId: string;
+  reason?: string;
+  status: 'DRAFT';
 }
 
 export interface ProductImageDto {

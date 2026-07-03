@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Bell, CreditCard, Heart, LayoutDashboard, Package } from 'lucide-react';
+import { AuthGate } from '@/components/auth/auth-gate';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
 
@@ -30,7 +31,9 @@ export function AccountShell({ title, description, children }: { title: string; 
           <p className="text-sm font-bold uppercase tracking-normal text-accent">Customer account</p>
           <h1 className="mt-2 text-3xl font-black">{title}</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
-          <div className="mt-6">{children}</div>
+          <div className="mt-6">
+            <AuthGate>{children}</AuthGate>
+          </div>
         </section>
       </main>
       <SiteFooter />
