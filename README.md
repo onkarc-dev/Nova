@@ -11,7 +11,7 @@ The backend foundation establishes persistence and API contracts for core commer
 - Shopper journeys for carts, wishlists, orders, payments, coupons, reviews, notifications, invoices, returns, refunds, search history, and recently viewed products.
 - Operational capabilities for CMS pages, settings, analytics events, support tickets, activity logs, and audit logs.
 
-Phase F1 introduces the production customer web foundation under `apps/web`, plus shared packages under `packages/api-client` and `packages/types`. Phase F2 connects the customer storefront to public catalog APIs for product browsing, category browsing, product detail pages, and search/filter foundations. The ShopNova Lovable prototype is a visual/product reference only; Nova's production frontend is built cleanly in this repository.
+Phase F1 introduces the production customer web foundation under `apps/web`, plus shared packages under `packages/api-client` and `packages/types`. Phase F2 connects the customer storefront to public catalog APIs for product browsing, category browsing, product detail pages, and search/filter foundations. Phase F3 connects login, signup, logout, refresh-token-ready session handling, and account overview surfaces to the real backend auth/account APIs. The ShopNova Lovable prototype is a visual/product reference only; Nova's production frontend is built cleanly in this repository.
 
 ## Repository structure
 
@@ -94,6 +94,17 @@ The web app calls the backend through `packages/api-client`. Public catalog call
 
 If the backend is unavailable, storefront pages render an API-unavailable state instead of fake catalog data.
 
+Auth/account calls currently target:
+
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/auth/me`
+- `GET /api/v1/users/me`
+
+Current frontend session storage is a temporary browser `localStorage` strategy because the backend currently returns access and refresh tokens in JSON and does not set HTTP-only session cookies. No secrets are stored in frontend code. A future hardening pass should move refresh-token handling to secure cookies or a BFF/session endpoint.
+
 ## Development standards
 
 - Preserve backward compatibility and avoid rewrites.
@@ -148,6 +159,13 @@ Customer storefront routes:
 - `/account/notifications`
 
 Not implemented yet: cart, checkout, payments, seller dashboard, and admin dashboard.
+
+Auth/account integration:
+
+- `/login` submits to the backend login endpoint.
+- `/signup` submits to the backend register endpoint.
+- `/account` is protected by frontend session state and loads real profile data.
+- Account subroutes are guarded by the same auth gate.
 
 ### Quality checks
 

@@ -1,14 +1,21 @@
 import type {
   ApiErrorEnvelope,
   ApiResponseEnvelope,
+  AuthResponseDto,
   BrandDto,
   CategoryDto,
   LegacyApiErrorEnvelope,
   LegacyApiResponseEnvelope,
   ListCatalogQuery,
   ListProductsQuery,
+  LoginRequestDto,
+  LogoutResponseDto,
   PaginatedResult,
   ProductDto,
+  RefreshTokenRequestDto,
+  RegisterRequestDto,
+  UpdateUserProfileDto,
+  UserProfileDto,
 } from '@nova/types';
 
 export interface ApiClientOptions {
@@ -111,6 +118,22 @@ export function createApiClient(options: ApiClientOptions = {}) {
       request<T>(path, { ...options, method: 'PATCH', body }),
     delete: <T>(path: string, options?: RequestOptions) => request<T>(path, { ...options, method: 'DELETE' }),
     request,
+    auth: {
+      login: (body: LoginRequestDto, options?: RequestOptions) =>
+        request<AuthResponseDto>('/api/v1/auth/login', { ...options, method: 'POST', body, auth: false }),
+      register: (body: RegisterRequestDto, options?: RequestOptions) =>
+        request<AuthResponseDto>('/api/v1/auth/register', { ...options, method: 'POST', body, auth: false }),
+      refresh: (body: RefreshTokenRequestDto, options?: RequestOptions) =>
+        request<AuthResponseDto>('/api/v1/auth/refresh', { ...options, method: 'POST', body, auth: false }),
+      logout: (body: RefreshTokenRequestDto, options?: RequestOptions) =>
+        request<LogoutResponseDto>('/api/v1/auth/logout', { ...options, method: 'POST', body }),
+      me: (options?: RequestOptions) => request<AuthResponseDto['user']>('/api/v1/auth/me', { ...options, method: 'GET' }),
+    },
+    account: {
+      getProfile: (options?: RequestOptions) => request<UserProfileDto>('/api/v1/users/me', { ...options, method: 'GET' }),
+      updateProfile: (body: UpdateUserProfileDto, options?: RequestOptions) =>
+        request<UserProfileDto>('/api/v1/users/me', { ...options, method: 'PATCH', body }),
+    },
     catalog: {
       listProducts: (query?: ListProductsQuery, options?: RequestOptions) =>
         request<PaginatedResult<ProductDto>>(withQuery('/api/v1/catalog/products', query), {

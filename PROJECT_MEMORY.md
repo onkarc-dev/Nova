@@ -1671,3 +1671,132 @@ Proceed to Phase F3 only after Phase F2 is accepted:
 3. Connect account overview to `/auth/me` and user profile APIs.
 4. Preserve cart, checkout, payments, seller dashboard, and admin dashboard for
    later phases.
+
+---
+
+# Auth And Account Integration Session - 2026-07-03
+
+## Completed
+
+Implemented the Phase F3 auth/account integration batch only. Work was
+performed inside the Nova repository on branch
+`phase-f3-auth-marketplace-foundation`.
+
+## Safety
+
+- Started from latest `main`.
+- Confirmed git remote is `https://github.com/onkarc-dev/Nova.git`.
+- Ran the wrong-project forbidden-term scan before coding and found zero
+  matches.
+- Did not touch any repository outside Nova.
+
+## Backend APIs Used
+
+Existing backend endpoints integrated:
+
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/auth/me`
+- `GET /api/v1/users/me`
+
+No new backend endpoints were required for Phase F3.
+
+## Frontend Auth Work
+
+- Login form now submits to the real backend login API.
+- Signup form now submits to the real backend register API.
+- Logout revokes the current refresh token when available.
+- Added a client-side auth provider.
+- Added refresh-token-ready session restore:
+  - load current session with `GET /auth/me` and `GET /users/me`
+  - if access token is expired, call `POST /auth/refresh`
+  - store rotated access/refresh tokens
+- Added account route protection with loading, unauthenticated, and error
+  states.
+- Connected `/account` to backend current-user/profile data.
+- Guarded existing account subroutes with the same auth gate.
+
+## Token Storage Decision
+
+The backend currently returns access and refresh tokens in JSON response bodies
+and does not set HTTP-only cookies. The frontend therefore uses browser
+`localStorage` as a temporary token storage strategy for this phase.
+
+Security risk:
+
+- Browser token storage is exposed to XSS if an injection vulnerability is
+  introduced.
+
+Mitigation in this phase:
+
+- No secrets are hardcoded in frontend code.
+- Tokens are scoped to the current browser and cleared on logout or invalid
+  refresh.
+- This is documented as temporary.
+
+Future hardening:
+
+- Move refresh-token handling to HTTP-only secure cookies or a backend-for-
+  frontend session endpoint.
+- Add CSRF strategy if cookie-backed auth is introduced.
+
+## Shared Package Changes
+
+`packages/api-client`:
+
+- Added typed auth functions: login, register, refresh, logout, me.
+- Added account profile functions: get profile and update profile.
+- Existing bearer token attachment is now used by the web app.
+
+`packages/types`:
+
+- Added auth request/response DTOs.
+- Added authenticated user/profile DTOs.
+- Added address DTOs.
+- Added placeholder DTOs for wishlist, cart, order, checkout, payment method,
+  and return request so later phases have typed targets without fake
+  production behavior.
+
+## Deferred
+
+Wishlist backend integration:
+
+- Deferred. Prisma has wishlist tables, but there are no wishlist controllers
+  or services yet.
+
+Cart foundation:
+
+- Deferred. Prisma has cart tables, but there are no cart controllers or
+  services yet.
+
+Orders foundation:
+
+- Deferred. Prisma has order tables, but customer order APIs are not yet
+  implemented.
+
+Checkout, payments, shipping, and returns:
+
+- Deferred. No fake checkout, fake payment success, card collection, or
+  logistics integration was added.
+
+## Verification
+
+Required verification for this session:
+
+- `npm install`
+- `npm run db:generate`
+- `npm run db:validate`
+- `npm run typecheck`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+- `npm run build:web`
+
+## Next Recommended Batch
+
+GO for wishlist backend integration only after Phase F3 is accepted.
+
+NO-GO for cart, orders, checkout, payments, shipping, or returns until the
+wishlist batch is implemented and verified.
