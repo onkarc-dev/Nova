@@ -41,6 +41,7 @@ enum CartStatus {
 
 enum OrderStatus {
   PENDING
+  PENDING_PAYMENT
   CONFIRMED
   PAID
   PROCESSING
@@ -54,12 +55,16 @@ enum PaymentStatus {
   PENDING
   AUTHORIZED
   CAPTURED
+  SUCCESS
   FAILED
+  CANCELLED
   REFUNDED
   PARTIALLY_REFUNDED
 }
 
 enum PaymentProvider {
+  NULL
+  MANUAL_PENDING
   STRIPE
   RAZORPAY
   COD
@@ -388,6 +393,7 @@ model Cart {
   updatedAt DateTime   @updatedAt
   user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
   items     CartItem[]
+  order     Order?
 
   @@index([userId, status])
   @@index([sessionId, status])
@@ -430,6 +436,7 @@ model Order {
   id                String        @id @default(cuid())
   orderNumber       String        @unique
   userId            String
+  cartId            String?       @unique
   billingAddressId  String?
   shippingAddressId String?
   status            OrderStatus   @default(PENDING)
@@ -442,6 +449,7 @@ model Order {
   placedAt          DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   user              User          @relation(fields: [userId], references: [id])
+  cart              Cart?         @relation(fields: [cartId], references: [id], onDelete: SetNull)
   billingAddress    Address?      @relation("BillingAddress", fields: [billingAddressId], references: [id], onDelete: SetNull)
   shippingAddress   Address?      @relation("ShippingAddress", fields: [shippingAddressId], references: [id], onDelete: SetNull)
   items             OrderItem[]

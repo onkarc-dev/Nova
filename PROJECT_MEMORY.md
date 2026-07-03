@@ -72,8 +72,10 @@ Frontend:
 - Phase F2: Customer storefront and catalog integration - COMPLETE
 - Phase F3: Auth/account integration - COMPLETE
 - Phase F4: Buyer commerce foundation - COMPLETE
-- Phase F5: Admin dashboard
-- Phase F6: UX/performance polish
+- Phase F5: Order processing foundation - COMPLETE
+- Phase F6: Seller dashboard
+- Phase F7: Admin dashboard
+- Phase F8: UX/performance polish
 
 DevOps:
 
@@ -118,6 +120,9 @@ Integration status:
 
 Phase F4 buyer commerce details are documented in
 `docs/phase-f4-buyer-commerce.md`.
+
+Phase F5 order processing details are documented in
+`docs/phase-f5-order-processing.md`.
 
 ## Vision
 

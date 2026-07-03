@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import type { CheckoutDraftDto } from '@nova/types';
 import { NovaApiError } from '@nova/api-client';
@@ -11,9 +12,11 @@ import { apiClient } from '@/lib/api';
 import { formatCents } from '@/lib/catalog';
 
 export function CheckoutPage() {
+  const router = useRouter();
   const [draft, setDraft] = React.useState<CheckoutDraftDto | null>(null);
   const [selectedAddressId, setSelectedAddressId] = React.useState('');
   const [status, setStatus] = React.useState<'loading' | 'ready' | 'error'>('loading');
+  const [creating, setCreating] = React.useState(false);
   const [message, setMessage] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -37,14 +40,20 @@ export function CheckoutPage() {
     };
   }, []);
 
-  async function validateCheckout() {
+  async function createOrder() {
+    if (!draft || !selectedAddressId) return;
+    setCreating(true);
     if (!selectedAddressId) return;
     setMessage(null);
     try {
       await apiClient.checkout.validate({ shippingAddressId: selectedAddressId });
-      setMessage('Cart and address are valid. Payment integration remains pending.');
+      await apiClient.inventory.validateCart(draft.cart.id);
+      const order = await apiClient.orders.create({ cartId: draft.cart.id, shippingAddressId: selectedAddressId });
+      router.push(`/account/orders/${order.id}`);
     } catch (error) {
-      setMessage(error instanceof NovaApiError ? error.message : 'Checkout validation failed.');
+      setMessage(error instanceof NovaApiError ? error.message : 'Order could not be created.');
+    } finally {
+      setCreating(false);
     }
   }
 
@@ -84,11 +93,24 @@ export function CheckoutPage() {
             <div className="mt-6 rounded-md bg-muted p-4">
               <div className="flex items-center gap-2 font-black">
                 <ShieldCheck className="h-5 w-5 text-primary" />
-                Payment integration pending
+                Payment pending after order creation
               </div>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                Nova validates cart and address readiness in this phase. Payment capture and order placement are reserved for a later phase.
+                Nova will create a real order with reserved inventory and a pending manual payment record. No payment success is simulated.
               </p>
+            </div>
+            <div className="mt-6">
+              <h2 className="text-xl font-black">Items</h2>
+              <div className="mt-3 grid gap-3">
+                {draft.cart.items.map((item) => (
+                  <div key={item.id} className="flex justify-between gap-3 rounded-md border border-border p-3 text-sm">
+                    <span className="font-semibold">{item.variant.product?.name ?? item.variant.name}</span>
+                    <span className="font-black">
+                      {item.quantity} x {formatCents(item.variant.priceCents, item.variant.currency)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
             {message ? <p className="mt-4 text-sm font-semibold text-accent">{message}</p> : null}
           </section>
@@ -100,10 +122,23 @@ export function CheckoutPage() {
             </div>
             <div className="mt-3 flex justify-between">
               <span className="text-muted-foreground">Subtotal</span>
-              <span className="font-black">{formatCents(draft.summary.subtotalCents, draft.summary.currency)}</span>
+              <span className="font-black">{formatCents(draft.pricing.subtotalCents, draft.pricing.currency)}</span>
             </div>
-            <Button type="button" className="mt-5 w-full" disabled={!selectedAddressId || draft.cart.items.length === 0} onClick={() => void validateCheckout()}>
-              Validate checkout
+            <div className="mt-3 flex justify-between text-sm">
+              <span className="text-muted-foreground">Taxes</span>
+              <span className="font-bold">{formatCents(draft.pricing.taxCents, draft.pricing.currency)}</span>
+            </div>
+            <div className="mt-3 flex justify-between text-sm">
+              <span className="text-muted-foreground">Shipping</span>
+              <span className="font-bold">{formatCents(draft.pricing.shippingCents, draft.pricing.currency)}</span>
+            </div>
+            <div className="mt-4 flex justify-between border-t border-border pt-4 text-lg">
+              <span className="font-black">Total</span>
+              <span className="font-black">{formatCents(draft.pricing.totalCents, draft.pricing.currency)}</span>
+            </div>
+            <Button type="button" className="mt-5 w-full" disabled={!selectedAddressId || draft.cart.items.length === 0 || creating} onClick={() => void createOrder()}>
+              {creating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Create order
             </Button>
             <Button asChild variant="outline" className="mt-3 w-full">
               <Link href="/cart">Back to cart</Link>
