@@ -8,6 +8,8 @@ import type {
   CheckoutDraftDto,
   CheckoutValidationDto,
   CheckoutValidationRequestDto,
+  CreateOrderRequestDto,
+  InventoryValidationDto,
   LegacyApiErrorEnvelope,
   LegacyApiResponseEnvelope,
   ListCatalogQuery,
@@ -203,8 +205,17 @@ export function createApiClient(options: ApiClientOptions = {}) {
     },
     orders: {
       list: (options?: RequestOptions) => request<OrderDto[]>('/api/v1/orders', { ...options, method: 'GET' }),
+      create: (body: CreateOrderRequestDto, options?: RequestOptions) =>
+        request<OrderDto>('/api/v1/orders', { ...options, method: 'POST', body }),
       get: (orderId: string, options?: RequestOptions) =>
         request<OrderDto>(`/api/v1/orders/${encodeURIComponent(orderId)}`, { ...options, method: 'GET' }),
+    },
+    inventory: {
+      validateCart: (cartId: string, options?: RequestOptions) =>
+        request<InventoryValidationDto>(`/api/v1/inventory/cart/${encodeURIComponent(cartId)}/validate`, {
+          ...options,
+          method: 'GET',
+        }),
     },
   };
 }

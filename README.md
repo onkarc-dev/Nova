@@ -11,7 +11,7 @@ The backend foundation establishes persistence and API contracts for core commer
 - Shopper journeys for carts, wishlists, orders, payments, coupons, reviews, notifications, invoices, returns, refunds, search history, and recently viewed products.
 - Operational capabilities for CMS pages, settings, analytics events, support tickets, activity logs, and audit logs.
 
-Phase F1 introduces the production customer web foundation under `apps/web`, plus shared packages under `packages/api-client` and `packages/types`. Phase F2 connects the customer storefront to public catalog APIs for product browsing, category browsing, product detail pages, and search/filter foundations. Phase F3 connects login, signup, logout, refresh-token-ready session handling, and account overview surfaces to the real backend auth/account APIs. Phase F4 adds the buyer commerce foundation for wishlist, cart, checkout readiness, and read-only order history. The ShopNova Lovable prototype is a visual/product reference only; Nova's production frontend is built cleanly in this repository.
+Phase F1 introduces the production customer web foundation under `apps/web`, plus shared packages under `packages/api-client` and `packages/types`. Phase F2 connects the customer storefront to public catalog APIs for product browsing, category browsing, product detail pages, and search/filter foundations. Phase F3 connects login, signup, logout, refresh-token-ready session handling, and account overview surfaces to the real backend auth/account APIs. Phase F4 adds the buyer commerce foundation for wishlist, cart, checkout readiness, and read-only order history. Phase F5 creates real pending-payment orders with inventory reservation and pending payment architecture. The ShopNova Lovable prototype is a visual/product reference only; Nova's production frontend is built cleanly in this repository.
 
 ## Repository structure
 
@@ -118,9 +118,13 @@ Buyer commerce calls currently target:
 - `GET /api/v1/checkout`
 - `POST /api/v1/checkout/validate`
 - `GET /api/v1/orders`
+- `POST /api/v1/orders`
 - `GET /api/v1/orders/:id`
+- `GET /api/v1/inventory/cart/:cartId/validate`
 
-Checkout is intentionally a readiness foundation only. It validates a signed-in buyer's cart and address selection, returns `paymentIntegrationStatus: "PENDING"`, and does not place orders or capture payment.
+Checkout now creates real orders through the order API. Orders start as `PENDING_PAYMENT`, inventory is reserved, and a pending manual payment record is created. Nova still does not capture payment or mark an order paid in this phase.
+
+See [`docs/phase-f5-order-processing.md`](docs/phase-f5-order-processing.md) for order flow, inventory rules, payment architecture, and remaining gaps.
 
 ## Development standards
 
@@ -178,7 +182,7 @@ Customer storefront routes:
 - `/account/payment-methods`
 - `/account/notifications`
 
-Not implemented yet: payment capture, production order placement, shipping integrations, returns, coupons, seller dashboard, admin dashboard, and inventory management UI.
+Not implemented yet: payment capture, payment webhooks, reservation expiry/release jobs, shipping integrations, returns, coupons, seller dashboard, admin dashboard, and inventory management UI.
 
 Auth/account integration:
 
@@ -192,8 +196,8 @@ Buyer commerce integration:
 - Wishlist is connected to authenticated backend wishlist APIs.
 - Cart is connected to authenticated backend cart APIs and shows a header badge.
 - Product detail pages can add the first active variant to the cart.
-- Checkout validates cart and address readiness only.
-- Orders are read-only and show existing backend orders for the signed-in buyer.
+- Checkout validates cart, address, and inventory readiness before creating an order.
+- Orders are created as pending-payment records and show existing backend orders for the signed-in buyer.
 
 ### Quality checks
 

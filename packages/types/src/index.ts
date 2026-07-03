@@ -239,7 +239,32 @@ export interface CartSummaryDto {
   currency: string;
 }
 
-export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+export type OrderStatus =
+  | 'PENDING'
+  | 'PENDING_PAYMENT'
+  | 'CONFIRMED'
+  | 'PAID'
+  | 'PROCESSING'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'CANCELLED'
+  | 'REFUNDED';
+
+export type PaymentStatus = 'PENDING' | 'AUTHORIZED' | 'CAPTURED' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
+
+export type PaymentProvider = 'NULL' | 'MANUAL_PENDING' | 'STRIPE' | 'RAZORPAY' | 'COD';
+
+export interface PaymentDto {
+  id: string;
+  orderId: string;
+  provider: PaymentProvider;
+  status: PaymentStatus;
+  amountCents: number;
+  currency: string;
+  providerRef?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export interface OrderItemDto {
   id: string;
@@ -264,6 +289,7 @@ export interface OrderDto {
   id: string;
   orderNumber: string;
   userId?: string;
+  cartId?: string | null;
   status: OrderStatus;
   subtotalCents: number;
   discountCents: number;
@@ -276,12 +302,14 @@ export interface OrderDto {
   shippingAddress?: AddressDto | null;
   billingAddress?: AddressDto | null;
   items: OrderItemDto[];
+  payments?: PaymentDto[];
 }
 
 export interface CheckoutDraftDto {
   cart: CartDto;
   addresses: AddressDto[];
   summary: CartSummaryDto;
+  pricing: CheckoutPricingDto;
   paymentIntegrationStatus: 'PENDING';
 }
 
@@ -295,6 +323,31 @@ export interface CheckoutValidationDto extends CheckoutDraftDto {
   selectedBillingAddressId: string;
   readyForPayment: false;
   paymentIntegrationStatus: 'PENDING';
+}
+
+export interface CheckoutPricingDto {
+  subtotalCents: number;
+  taxCents: number;
+  shippingCents: number;
+  discountCents: number;
+  totalCents: number;
+  currency: string;
+}
+
+export interface CreateOrderRequestDto {
+  cartId: string;
+  shippingAddressId: string;
+  billingAddressId?: string;
+}
+
+export interface InventoryValidationDto {
+  cartId: string;
+  valid: boolean;
+  items: Array<{
+    variantId: string;
+    requestedQuantity: number;
+    availableQuantity: number;
+  }>;
 }
 
 export interface PaymentMethodPlaceholderDto {

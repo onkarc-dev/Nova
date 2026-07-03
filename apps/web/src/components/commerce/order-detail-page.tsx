@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
+import { CheckCircle2, Clock, Loader2 } from 'lucide-react';
 import type { OrderDto } from '@nova/types';
 import { NovaApiError } from '@nova/api-client';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,31 @@ export function OrderDetailPageContent({ orderId }: { orderId: string }) {
         </div>
       </section>
       <section className="rounded-md border border-border bg-background p-5">
+        <h3 className="text-xl font-black">Order timeline</h3>
+        <div className="mt-4 grid gap-3 sm:grid-cols-5">
+          {[
+            ['PENDING_PAYMENT', 'Pending payment'],
+            ['CANCELLED', 'Cancelled'],
+            ['PAID', 'Paid'],
+            ['SHIPPED', 'Shipped'],
+            ['DELIVERED', 'Delivered'],
+          ].map(([status, label]) => {
+            const active = order.status === status;
+            return (
+              <div key={status} className="rounded-md border border-border bg-white p-3">
+                {active ? <CheckCircle2 className="h-5 w-5 text-primary" /> : <Clock className="h-5 w-5 text-muted-foreground" />}
+                <p className="mt-2 text-sm font-black">{label}</p>
+              </div>
+            );
+          })}
+        </div>
+        {order.status === 'PENDING_PAYMENT' ? (
+          <p className="mt-4 rounded-md bg-muted p-3 text-sm font-semibold text-muted-foreground">
+            Payment is pending. Nova has not marked this order paid and no payment success has been simulated.
+          </p>
+        ) : null}
+      </section>
+      <section className="rounded-md border border-border bg-background p-5">
         <h3 className="text-xl font-black">Items</h3>
         <div className="mt-4 grid gap-3">
           {order.items.map((item) => (
@@ -67,9 +92,70 @@ export function OrderDetailPageContent({ orderId }: { orderId: string }) {
           ))}
         </div>
       </section>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-md border border-border bg-background p-5">
+          <h3 className="text-xl font-black">Pricing snapshot</h3>
+          <div className="mt-4 grid gap-3 text-sm">
+            <PriceRow label="Subtotal" value={formatCents(order.subtotalCents, order.currency)} />
+            <PriceRow label="Taxes" value={formatCents(order.taxCents, order.currency)} />
+            <PriceRow label="Shipping" value={formatCents(order.shippingCents, order.currency)} />
+            <PriceRow label="Discounts" value={formatCents(order.discountCents, order.currency)} />
+            <PriceRow label="Total" value={formatCents(order.totalCents, order.currency)} strong />
+          </div>
+        </div>
+        <div className="rounded-md border border-border bg-background p-5">
+          <h3 className="text-xl font-black">Addresses</h3>
+          <div className="mt-4 grid gap-4 text-sm">
+            <AddressBlock title="Shipping" address={order.shippingAddress} />
+            <AddressBlock title="Billing" address={order.billingAddress} />
+          </div>
+        </div>
+      </section>
+      {order.payments?.length ? (
+        <section className="rounded-md border border-border bg-background p-5">
+          <h3 className="text-xl font-black">Payment</h3>
+          {order.payments.map((payment) => (
+            <div key={payment.id} className="mt-4 rounded-md border border-border bg-white p-4 text-sm">
+              <p className="font-black">{payment.status}</p>
+              <p className="mt-1 text-muted-foreground">
+                {payment.provider} - {formatCents(payment.amountCents, payment.currency)}
+              </p>
+            </div>
+          ))}
+        </section>
+      ) : null}
       <Button asChild variant="outline">
         <Link href="/account/orders">Back to orders</Link>
       </Button>
+    </div>
+  );
+}
+
+function PriceRow({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
+  return (
+    <div className={strong ? 'flex justify-between border-t border-border pt-3 text-base font-black' : 'flex justify-between'}>
+      <span className="text-muted-foreground">{label}</span>
+      <span className={strong ? 'font-black text-foreground' : 'font-bold'}>{value}</span>
+    </div>
+  );
+}
+
+function AddressBlock({ title, address }: { title: string; address: OrderDto['shippingAddress'] }) {
+  if (!address) {
+    return (
+      <div>
+        <p className="font-black">{title}</p>
+        <p className="mt-1 text-muted-foreground">Not attached</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <p className="font-black">{title}</p>
+      <p className="mt-1 text-muted-foreground">
+        {address.fullName}, {address.line1}, {address.city}, {address.state} {address.postalCode}
+      </p>
     </div>
   );
 }

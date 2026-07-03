@@ -7,6 +7,9 @@ import type { ValidateCheckoutDto } from './dto/validate-checkout.dto';
 
 @Injectable()
 export class CheckoutService {
+  private readonly shippingCents = 0;
+  private readonly taxCents = 0;
+
   constructor(
     private readonly cartService: CartService,
     private readonly prisma: PrismaService,
@@ -25,6 +28,7 @@ export class CheckoutService {
       cart,
       addresses,
       summary: cart.summary,
+      pricing: this.createPricing(cart.summary.subtotalCents, cart.summary.currency),
       paymentIntegrationStatus: 'PENDING' as const,
     };
   }
@@ -60,5 +64,16 @@ export class CheckoutService {
     const address = await this.prisma.address.findFirst({ where: { id: addressId, userId } });
     if (!address) throw new NotFoundException('Address not found.');
     return address;
+  }
+
+  private createPricing(subtotalCents: number, currency: string) {
+    return {
+      subtotalCents,
+      taxCents: this.taxCents,
+      shippingCents: this.shippingCents,
+      discountCents: 0,
+      totalCents: subtotalCents + this.taxCents + this.shippingCents,
+      currency,
+    };
   }
 }
