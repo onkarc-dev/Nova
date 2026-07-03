@@ -1,11 +1,10 @@
 import { AccountShell } from '@/components/layout/account-shell';
+import { WishlistPageContent } from '@/components/commerce/wishlist-page';
 
 export default function WishlistPage() {
   return (
-    <AccountShell title="Wishlist" description="Saved products will appear here once wishlist APIs are implemented and connected.">
-      <div className="rounded-md border border-dashed border-border bg-background p-8 text-center text-sm font-semibold text-muted-foreground">
-        Your wishlist shell is ready for product cards.
-      </div>
+    <AccountShell title="Wishlist" description="Save products from the Nova marketplace and return to them from your account.">
+      <WishlistPageContent />
     </AccountShell>
   );
 }

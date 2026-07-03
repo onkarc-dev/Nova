@@ -11,7 +11,7 @@ The backend foundation establishes persistence and API contracts for core commer
 - Shopper journeys for carts, wishlists, orders, payments, coupons, reviews, notifications, invoices, returns, refunds, search history, and recently viewed products.
 - Operational capabilities for CMS pages, settings, analytics events, support tickets, activity logs, and audit logs.
 
-Phase F1 introduces the production customer web foundation under `apps/web`, plus shared packages under `packages/api-client` and `packages/types`. Phase F2 connects the customer storefront to public catalog APIs for product browsing, category browsing, product detail pages, and search/filter foundations. Phase F3 connects login, signup, logout, refresh-token-ready session handling, and account overview surfaces to the real backend auth/account APIs. The ShopNova Lovable prototype is a visual/product reference only; Nova's production frontend is built cleanly in this repository.
+Phase F1 introduces the production customer web foundation under `apps/web`, plus shared packages under `packages/api-client` and `packages/types`. Phase F2 connects the customer storefront to public catalog APIs for product browsing, category browsing, product detail pages, and search/filter foundations. Phase F3 connects login, signup, logout, refresh-token-ready session handling, and account overview surfaces to the real backend auth/account APIs. Phase F4 adds the buyer commerce foundation for wishlist, cart, checkout readiness, and read-only order history. The ShopNova Lovable prototype is a visual/product reference only; Nova's production frontend is built cleanly in this repository.
 
 ## Repository structure
 
@@ -105,6 +105,23 @@ Auth/account calls currently target:
 
 Current frontend session storage is a temporary browser `localStorage` strategy because the backend currently returns access and refresh tokens in JSON and does not set HTTP-only session cookies. No secrets are stored in frontend code. A future hardening pass should move refresh-token handling to secure cookies or a BFF/session endpoint.
 
+Buyer commerce calls currently target:
+
+- `GET /api/v1/wishlist`
+- `POST /api/v1/wishlist/items`
+- `DELETE /api/v1/wishlist/items/:productId`
+- `GET /api/v1/cart`
+- `POST /api/v1/cart/items`
+- `PATCH /api/v1/cart/items/:id`
+- `DELETE /api/v1/cart/items/:id`
+- `DELETE /api/v1/cart`
+- `GET /api/v1/checkout`
+- `POST /api/v1/checkout/validate`
+- `GET /api/v1/orders`
+- `GET /api/v1/orders/:id`
+
+Checkout is intentionally a readiness foundation only. It validates a signed-in buyer's cart and address selection, returns `paymentIntegrationStatus: "PENDING"`, and does not place orders or capture payment.
+
 ## Development standards
 
 - Preserve backward compatibility and avoid rewrites.
@@ -150,15 +167,18 @@ Customer storefront routes:
 - `/products`
 - `/products/[slug]`
 - `/categories/[slug]`
+- `/cart`
+- `/checkout`
 - `/login`
 - `/signup`
 - `/account`
 - `/account/orders`
+- `/account/orders/[id]`
 - `/account/wishlist`
 - `/account/payment-methods`
 - `/account/notifications`
 
-Not implemented yet: cart, checkout, payments, seller dashboard, and admin dashboard.
+Not implemented yet: payment capture, production order placement, shipping integrations, returns, coupons, seller dashboard, admin dashboard, and inventory management UI.
 
 Auth/account integration:
 
@@ -166,6 +186,14 @@ Auth/account integration:
 - `/signup` submits to the backend register endpoint.
 - `/account` is protected by frontend session state and loads real profile data.
 - Account subroutes are guarded by the same auth gate.
+
+Buyer commerce integration:
+
+- Wishlist is connected to authenticated backend wishlist APIs.
+- Cart is connected to authenticated backend cart APIs and shows a header badge.
+- Product detail pages can add the first active variant to the cart.
+- Checkout validates cart and address readiness only.
+- Orders are read-only and show existing backend orders for the signed-in buyer.
 
 ### Quality checks
 

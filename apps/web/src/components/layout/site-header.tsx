@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Bell, Heart, Menu, Search, UserRound } from 'lucide-react';
+import { Menu, Search } from 'lucide-react';
+import { HeaderCommerceActions } from '@/components/commerce/header-commerce-actions';
 import { Button } from '@/components/ui/button';
 
 const departments = ['Fashion', 'Mobiles', 'Home', 'Beauty', 'Grocery', 'Appliances', 'Sports'];
@@ -29,23 +30,7 @@ export function SiteHeader() {
             Search
           </Button>
         </form>
-        <nav className="ml-auto flex items-center gap-1">
-          <Button asChild variant="ghost" size="icon" aria-label="Wishlist">
-            <Link href="/account/wishlist">
-              <Heart className="h-5 w-5" />
-            </Link>
-          </Button>
-          <Button asChild variant="ghost" size="icon" aria-label="Notifications">
-            <Link href="/account/notifications">
-              <Bell className="h-5 w-5" />
-            </Link>
-          </Button>
-          <Button asChild variant="ghost" size="icon" aria-label="Account">
-            <Link href="/account">
-              <UserRound className="h-5 w-5" />
-            </Link>
-          </Button>
-        </nav>
+        <HeaderCommerceActions />
       </div>
       <div className="border-t border-border bg-white">
         <nav className="mx-auto flex max-w-7xl gap-2 overflow-x-auto px-4 py-2 text-sm font-semibold text-muted-foreground sm:px-6">

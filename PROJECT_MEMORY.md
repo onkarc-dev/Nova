@@ -68,10 +68,10 @@ Backend:
 
 Frontend:
 
-- Phase F1: Frontend foundation - IN PROGRESS
-- Phase F2: Customer storefront
-- Phase F3: Auth/account integration
-- Phase F4: Seller dashboard
+- Phase F1: Frontend foundation - COMPLETE
+- Phase F2: Customer storefront and catalog integration - COMPLETE
+- Phase F3: Auth/account integration - COMPLETE
+- Phase F4: Buyer commerce foundation - COMPLETE
 - Phase F5: Admin dashboard
 - Phase F6: UX/performance polish
 
@@ -115,6 +115,9 @@ Integration status:
   frontend environment example, auth token attach support, refresh-token-ready
   client structure, frontend loading/empty/error states, and typed contract
   reuse between apps.
+
+Phase F4 buyer commerce details are documented in
+`docs/phase-f4-buyer-commerce.md`.
 
 ## Vision
 
