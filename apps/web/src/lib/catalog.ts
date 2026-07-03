@@ -50,11 +50,15 @@ export function formatPrice(product: ProductDto): string {
   const variant = product.variants?.[0];
   if (!variant) return 'Price pending';
 
+  return formatCents(variant.priceCents, variant.currency);
+}
+
+export function formatCents(priceCents: number, currency = 'INR'): string {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
-    currency: variant.currency ?? 'INR',
+    currency,
     maximumFractionDigits: 0,
-  }).format(variant.priceCents / 100);
+  }).format(priceCents / 100);
 }
 
 export function productImage(product: ProductDto): { url: string | null; alt: string } {

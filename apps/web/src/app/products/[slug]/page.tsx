@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { Store, Truck } from 'lucide-react';
 import type { ProductDto } from '@nova/types';
 import { Button } from '@/components/ui/button';
+import { AddToCartButton } from '@/components/commerce/add-to-cart-button';
+import { WishlistButton } from '@/components/commerce/wishlist-button';
 import { CatalogError } from '@/components/catalog/catalog-state';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
@@ -28,6 +30,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
 
 function ProductDetail({ product }: { product: ProductDto }) {
   const image = productImage(product);
+  const variant = product.variants?.find((item) => item.isActive !== false) ?? product.variants?.[0];
 
   return (
     <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
@@ -54,7 +57,8 @@ function ProductDetail({ product }: { product: ProductDto }) {
           </span>
         </div>
         <div className="mt-6 flex flex-wrap gap-3">
-          <Button disabled>Purchasing unavailable in Phase F2</Button>
+          <AddToCartButton variantId={variant?.id} disabled={!variant} />
+          <WishlistButton productId={product.id} />
           <Button asChild variant="outline">
             <Link href="/products">Back to products</Link>
           </Button>

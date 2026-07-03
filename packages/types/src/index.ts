@@ -200,34 +200,100 @@ export interface AddressDto {
 
 export interface WishlistDto {
   id: string;
-  name?: string | null;
-  items?: ProductDto[];
+  userId?: string;
+  name: string;
+  items: WishlistItemDto[];
+  itemCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface WishlistItemDto {
+  productId: string;
+  createdAt: string;
+  product: ProductDto;
 }
 
 export interface CartItemDto {
   id: string;
-  product: ProductDto;
   variant: ProductVariantDto;
+  product?: ProductDto;
   quantity: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CartDto {
   id: string;
+  userId?: string | null;
   items: CartItemDto[];
   status?: 'ACTIVE' | 'CHECKED_OUT' | 'ABANDONED';
+  summary: CartSummaryDto;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CartSummaryDto {
+  itemCount: number;
+  subtotalCents: number;
+  currency: string;
+}
+
+export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+
+export interface OrderItemDto {
+  id: string;
+  orderId: string;
+  sellerId: string;
+  storeId: string;
+  productId: string;
+  variantId: string;
+  skuSnapshot: string;
+  nameSnapshot: string;
+  storeNameSnapshot: string;
+  sellerNameSnapshot: string;
+  quantity: number;
+  unitPriceCents: number;
+  totalCents: number;
+  product?: ProductDto;
+  variant?: ProductVariantDto;
+  store?: Pick<StoreDto, 'id' | 'name' | 'slug'>;
 }
 
 export interface OrderDto {
   id: string;
   orderNumber: string;
-  status: string;
+  userId?: string;
+  status: OrderStatus;
+  subtotalCents: number;
+  discountCents: number;
+  taxCents: number;
+  shippingCents: number;
   totalCents: number;
-  createdAt?: string;
+  currency: string;
+  placedAt?: string;
+  updatedAt?: string;
+  shippingAddress?: AddressDto | null;
+  billingAddress?: AddressDto | null;
+  items: OrderItemDto[];
 }
 
 export interface CheckoutDraftDto {
-  cartId: string;
-  shippingAddressId?: string;
+  cart: CartDto;
+  addresses: AddressDto[];
+  summary: CartSummaryDto;
+  paymentIntegrationStatus: 'PENDING';
+}
+
+export interface CheckoutValidationRequestDto {
+  shippingAddressId: string;
+  billingAddressId?: string;
+}
+
+export interface CheckoutValidationDto extends CheckoutDraftDto {
+  selectedShippingAddressId: string;
+  selectedBillingAddressId: string;
+  readyForPayment: false;
   paymentIntegrationStatus: 'PENDING';
 }
 
@@ -261,6 +327,7 @@ export interface ProductVariantDto {
   attributes?: Record<string, string | number | boolean>;
   currency?: string;
   isActive?: boolean;
+  product?: ProductDto;
 }
 
 export interface ProductDto {

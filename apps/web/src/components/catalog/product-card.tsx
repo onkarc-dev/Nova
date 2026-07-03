@@ -1,7 +1,7 @@
 import Link from 'next/link';
-import { Heart, Store, Tag } from 'lucide-react';
+import { Store, Tag } from 'lucide-react';
 import type { ProductDto } from '@nova/types';
-import { Button } from '@/components/ui/button';
+import { WishlistButton } from '@/components/commerce/wishlist-button';
 import { formatPrice, productImage } from '@/lib/catalog';
 
 export function ProductCard({ product }: { product: ProductDto }) {
@@ -9,8 +9,8 @@ export function ProductCard({ product }: { product: ProductDto }) {
 
   return (
     <article className="overflow-hidden rounded-md border border-border bg-white">
-      <Link href={`/products/${product.slug}`} className="block">
-        <div className="relative aspect-[4/3] bg-muted">
+      <div className="relative aspect-[4/3] bg-muted">
+        <Link href={`/products/${product.slug}`} className="block h-full">
           {image.url ? (
             <div className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url(${image.url})` }} aria-label={image.alt} />
           ) : (
@@ -18,11 +18,11 @@ export function ProductCard({ product }: { product: ProductDto }) {
               Nova
             </div>
           )}
-          <Button aria-label={`Save ${product.name}`} size="icon" variant="secondary" className="absolute right-3 top-3 bg-white">
-            <Heart className="h-4 w-4" />
-          </Button>
+        </Link>
+        <div className="absolute right-3 top-3">
+          <WishlistButton productId={product.id} label="" />
         </div>
-      </Link>
+      </div>
       <div className="p-4">
         <div className="flex flex-wrap gap-2 text-xs font-bold uppercase tracking-normal text-muted-foreground">
           {product.category ? (

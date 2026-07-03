@@ -17,6 +17,10 @@ import { QueueModule } from '@/queues/queue.module';
 import { AuthModule } from '@/auth/auth.module';
 import { SellersModule } from '@/sellers/sellers.module';
 import { UsersModule } from '@/users/users.module';
+import { CartModule } from '@/cart/cart.module';
+import { CheckoutModule } from '@/checkout/checkout.module';
+import { OrdersModule } from '@/orders/orders.module';
+import { WishlistModule } from '@/wishlist/wishlist.module';
 
 @Module({
   imports: [
@@ -31,6 +35,10 @@ import { UsersModule } from '@/users/users.module';
     AuthModule,
     UsersModule,
     SellersModule,
+    WishlistModule,
+    CartModule,
+    CheckoutModule,
+    OrdersModule,
     HealthModule,
   ],
 })

@@ -3,19 +3,25 @@ import type {
   ApiResponseEnvelope,
   AuthResponseDto,
   BrandDto,
+  CartDto,
   CategoryDto,
+  CheckoutDraftDto,
+  CheckoutValidationDto,
+  CheckoutValidationRequestDto,
   LegacyApiErrorEnvelope,
   LegacyApiResponseEnvelope,
   ListCatalogQuery,
   ListProductsQuery,
   LoginRequestDto,
   LogoutResponseDto,
+  OrderDto,
   PaginatedResult,
   ProductDto,
   RefreshTokenRequestDto,
   RegisterRequestDto,
   UpdateUserProfileDto,
   UserProfileDto,
+  WishlistDto,
 } from '@nova/types';
 
 export interface ApiClientOptions {
@@ -165,6 +171,40 @@ export function createApiClient(options: ApiClientOptions = {}) {
           method: 'GET',
           auth: false,
         }),
+    },
+    wishlist: {
+      get: (options?: RequestOptions) => request<WishlistDto>('/api/v1/wishlist', { ...options, method: 'GET' }),
+      addItem: (productId: string, options?: RequestOptions) =>
+        request<WishlistDto>('/api/v1/wishlist/items', { ...options, method: 'POST', body: { productId } }),
+      removeItem: (productId: string, options?: RequestOptions) =>
+        request<WishlistDto>(`/api/v1/wishlist/items/${encodeURIComponent(productId)}`, {
+          ...options,
+          method: 'DELETE',
+        }),
+    },
+    cart: {
+      get: (options?: RequestOptions) => request<CartDto>('/api/v1/cart', { ...options, method: 'GET' }),
+      addItem: (variantId: string, quantity: number, options?: RequestOptions) =>
+        request<CartDto>('/api/v1/cart/items', { ...options, method: 'POST', body: { variantId, quantity } }),
+      updateItem: (itemId: string, quantity: number, options?: RequestOptions) =>
+        request<CartDto>(`/api/v1/cart/items/${encodeURIComponent(itemId)}`, {
+          ...options,
+          method: 'PATCH',
+          body: { quantity },
+        }),
+      removeItem: (itemId: string, options?: RequestOptions) =>
+        request<CartDto>(`/api/v1/cart/items/${encodeURIComponent(itemId)}`, { ...options, method: 'DELETE' }),
+      clear: (options?: RequestOptions) => request<CartDto>('/api/v1/cart', { ...options, method: 'DELETE' }),
+    },
+    checkout: {
+      get: (options?: RequestOptions) => request<CheckoutDraftDto>('/api/v1/checkout', { ...options, method: 'GET' }),
+      validate: (body: CheckoutValidationRequestDto, options?: RequestOptions) =>
+        request<CheckoutValidationDto>('/api/v1/checkout/validate', { ...options, method: 'POST', body }),
+    },
+    orders: {
+      list: (options?: RequestOptions) => request<OrderDto[]>('/api/v1/orders', { ...options, method: 'GET' }),
+      get: (orderId: string, options?: RequestOptions) =>
+        request<OrderDto>(`/api/v1/orders/${encodeURIComponent(orderId)}`, { ...options, method: 'GET' }),
     },
   };
 }
