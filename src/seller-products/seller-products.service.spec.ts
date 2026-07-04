@@ -2,30 +2,59 @@ import { BadRequestException } from '@nestjs/common';
 import type { PrismaService } from '@database/prisma.service';
 import { SellerProductsService } from './seller-products.service';
 
+type VariantTestRecord = {
+  id: string;
+  sku: string;
+};
+
+type VariantMock = {
+  findMany: jest.Mock<Promise<VariantTestRecord[]>, []>;
+  update: jest.Mock<Promise<Record<string, never>>, [unknown]>;
+  create: jest.Mock<Promise<Record<string, never>>, [unknown]>;
+  updateMany: jest.Mock<Promise<{ count: number }>, [unknown]>;
+  deleteMany: jest.Mock;
+};
+
+type ProductMock = {
+  update: jest.Mock<Promise<Record<string, never>>, [unknown]>;
+  findUnique: jest.Mock<Promise<{ id: string }>, [unknown]>;
+};
+
+type ProductImageMock = {
+  deleteMany: jest.Mock<Promise<{ count: number }>, [unknown]>;
+  createMany: jest.Mock<Promise<{ count: number }>, [unknown]>;
+};
+
+type TransactionMock = {
+  product: ProductMock;
+  variant: VariantMock;
+  productImage: ProductImageMock;
+};
+
 describe('SellerProductsService safe variant updates', () => {
   const user = { id: 'user_1', email: 'seller@example.com', roles: ['SELLER'] } as never;
 
-  function createService(existingVariants = [{ id: 'variant_1', sku: 'SKU-1' }]) {
-    const tx = {
+  function createService(existingVariants: VariantTestRecord[] = [{ id: 'variant_1', sku: 'SKU-1' }]) {
+    const tx: TransactionMock = {
       product: {
-        update: jest.fn().mockResolvedValue({}),
-        findUnique: jest.fn().mockResolvedValue({ id: 'product_1' }),
+        update: jest.fn<Promise<Record<string, never>>, [unknown]>().mockResolvedValue({}),
+        findUnique: jest.fn<Promise<{ id: string }>, [unknown]>().mockResolvedValue({ id: 'product_1' }),
       },
       variant: {
-        findMany: jest.fn().mockResolvedValue(existingVariants),
-        update: jest.fn().mockResolvedValue({}),
-        create: jest.fn().mockResolvedValue({}),
-        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+        findMany: jest.fn<Promise<VariantTestRecord[]>, []>().mockResolvedValue(existingVariants),
+        update: jest.fn<Promise<Record<string, never>>, [unknown]>().mockResolvedValue({}),
+        create: jest.fn<Promise<Record<string, never>>, [unknown]>().mockResolvedValue({}),
+        updateMany: jest.fn<Promise<{ count: number }>, [unknown]>().mockResolvedValue({ count: 0 }),
         deleteMany: jest.fn(),
       },
       productImage: {
-        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
-        createMany: jest.fn().mockResolvedValue({ count: 0 }),
+        deleteMany: jest.fn<Promise<{ count: number }>, [unknown]>().mockResolvedValue({ count: 0 }),
+        createMany: jest.fn<Promise<{ count: number }>, [unknown]>().mockResolvedValue({ count: 0 }),
       },
     };
     const prisma = {
       product: { findFirst: jest.fn().mockResolvedValue({ id: 'product_1' }) },
-      runInTransaction: jest.fn((callback: (transaction: typeof tx) => Promise<unknown>) => callback(tx)),
+      runInTransaction: jest.fn((callback: (transaction: TransactionMock) => Promise<unknown>) => callback(tx)),
     };
     return { prisma, service: new SellerProductsService(prisma as unknown as PrismaService), tx };
   }
