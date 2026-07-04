@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class SearchProductsDto {
   @IsOptional()
@@ -31,8 +31,8 @@ export class SearchProductsDto {
   maxPriceCents?: number;
 
   @IsOptional()
-  @IsString()
-  sort?: 'newest' | 'price_asc' | 'price_desc' | 'name_asc';
+  @IsIn(['newest', 'price_asc', 'price_desc', 'name_asc', 'relevance'])
+  sort?: 'newest' | 'price_asc' | 'price_desc' | 'name_asc' | 'relevance';
 
   @IsOptional()
   @Type(() => Number)
@@ -47,3 +47,13 @@ export class SearchProductsDto {
   limit?: number;
 }
 
+export class AutocompleteProductsDto {
+  @IsString()
+  q!: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number;
+}

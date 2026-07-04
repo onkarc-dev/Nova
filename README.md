@@ -94,6 +94,20 @@ The web app calls the backend through `packages/api-client`. Public catalog call
 
 If the backend is unavailable, storefront pages render an API-unavailable state instead of fake catalog data.
 
+Cadde Store search calls currently target:
+
+- `GET /api/v1/search/products`
+- `GET /api/v1/search/autocomplete?q=`
+- `POST /api/v1/admin/search/reindex`
+
+Search uses the database provider by default. Configure optional Meilisearch with:
+
+- `MEILISEARCH_HOST`
+- `MEILISEARCH_API_KEY`
+- `MEILISEARCH_INDEX_PRODUCTS`
+
+When Meilisearch is not configured, product search, filters, price sorting, pagination, autocomplete, and admin reindex continue to run through the PostgreSQL fallback. Reindex pushes active products from verified stores when Meilisearch is configured; with the fallback provider it returns the current count of indexable products.
+
 Auth/account calls currently target:
 
 - `POST /api/v1/auth/login`

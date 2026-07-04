@@ -1,5 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
+import { ProductStatus, SellerStatus } from '@prisma/client';
 import type { PrismaService } from '@database/prisma.service';
+import type { SearchService } from '@/search/search.service';
 import { SellerProductsService } from './seller-products.service';
 
 type VariantTestRecord = {
@@ -35,6 +37,10 @@ describe('SellerProductsService safe variant updates', () => {
   const user = { id: 'user_1', email: 'seller@example.com', roles: ['SELLER'] } as never;
 
   function createService(existingVariants: VariantTestRecord[] = [{ id: 'variant_1', sku: 'SKU-1' }]) {
+    const searchService = {
+      scheduleProductIndex: jest.fn(),
+      scheduleProductRemoval: jest.fn(),
+    };
     const tx: TransactionMock = {
       product: {
         update: jest.fn<Promise<Record<string, never>>, [unknown]>().mockResolvedValue({}),
@@ -53,11 +59,32 @@ describe('SellerProductsService safe variant updates', () => {
       },
     };
     const prisma = {
-      product: { findFirst: jest.fn().mockResolvedValue({ id: 'product_1' }) },
+      store: {
+        findFirst: jest.fn().mockResolvedValue({ id: 'store_1', isVerified: true, seller: { id: 'seller_1', status: SellerStatus.APPROVED } }),
+      },
+      product: {
+        create: jest.fn().mockResolvedValue({ id: 'product_1' }),
+        findFirst: jest.fn().mockResolvedValue({ id: 'product_1' }),
+      },
       runInTransaction: jest.fn((callback: (transaction: TransactionMock) => Promise<unknown>) => callback(tx)),
     };
-    return { prisma, service: new SellerProductsService(prisma as unknown as PrismaService), tx };
+    return { prisma, searchService, service: new SellerProductsService(prisma as unknown as PrismaService, searchService as unknown as SearchService), tx };
   }
+
+  it('schedules product indexing after seller product creation', async () => {
+    const { service, searchService } = createService();
+
+    await service.create(user, {
+      storeId: 'store_1',
+      categoryId: 'category_1',
+      name: 'Cotton Kurta',
+      description: 'Soft cotton kurta',
+      status: ProductStatus.ACTIVE,
+      variants: [{ sku: 'SKU-1', name: 'Small', priceCents: 999 }],
+    });
+
+    expect(searchService.scheduleProductIndex).toHaveBeenCalledWith('product_1');
+  });
 
   it('updates an existing variant by stable id without deleting it', async () => {
     const { service, tx } = createService();
@@ -71,6 +98,16 @@ describe('SellerProductsService safe variant updates', () => {
       data: expect.objectContaining({ sku: 'SKU-1A', name: 'Large', priceCents: 1299, isActive: true }),
     });
     expect(tx.variant.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('schedules product indexing after seller product updates', async () => {
+    const { service, searchService } = createService();
+
+    await service.update(user, 'product_1', {
+      variants: [{ id: 'variant_1', sku: 'SKU-1A', name: 'Large', priceCents: 1299, attributes: { size: 'L' } }],
+    });
+
+    expect(searchService.scheduleProductIndex).toHaveBeenCalledWith('product_1');
   });
 
   it('adds a new variant when no existing id or SKU matches', async () => {

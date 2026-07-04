@@ -477,6 +477,23 @@ export interface ProductSearchQuery extends ListProductsQuery {
   seller?: string;
   minPriceCents?: number;
   maxPriceCents?: number;
+  sort?: 'newest' | 'price_asc' | 'price_desc' | 'name_asc' | 'relevance';
+}
+
+export interface ProductAutocompleteQuery {
+  q: string;
+  limit?: number;
+}
+
+export interface ProductAutocompleteSuggestionDto {
+  value: string;
+  type: 'product' | 'category' | 'brand' | 'store';
+  score: number;
+}
+
+export interface SearchReindexResponseDto {
+  provider: string;
+  indexedProducts: number;
 }
 
 export interface AnalyticsRevenueDto {
@@ -509,7 +526,7 @@ export interface ListProductsQuery {
   categorySlug?: string;
   brandSlug?: string;
   storeSlug?: string;
-  sort?: 'newest' | 'price_asc' | 'price_desc' | 'name_asc';
+  sort?: 'newest' | 'price_asc' | 'price_desc' | 'name_asc' | 'relevance';
 }
 
 export interface ListCatalogQuery {

@@ -24,6 +24,7 @@ Nova is being evolved into Cadde Store with an API-first backend boundary. Lovab
 - `POST /api/v1/payments/webhook/razorpay`
 - `POST /api/v1/payments/:paymentId/refund`
 - `GET /api/v1/search/products`
+- `GET /api/v1/search/autocomplete?q=`
 - `POST /api/v1/admin/search/reindex`
 - `GET /api/v1/admin/analytics/revenue`
 - `GET /api/v1/admin/analytics/categories`
@@ -60,4 +61,8 @@ Set `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET` for 
 
 ## Search Notes
 
-`MEILISEARCH_HOST` and `MEILISEARCH_API_KEY` are reserved for Meilisearch. The current MVP has a safe database fallback endpoint so local development does not require a search service.
+`MEILISEARCH_HOST`, `MEILISEARCH_API_KEY`, and `MEILISEARCH_INDEX_PRODUCTS` configure optional Meilisearch product indexing. When they are missing, Cadde Store uses the database search provider automatically so local development does not require a search service.
+
+Search supports keyword relevance, category, brand, seller/store, price range, newest, name, and real minimum active variant price sorting. Autocomplete normalizes lowercase text, ranks exact prefix matches above contains matches, deduplicates normalized values, and returns product, category, brand, and store suggestions.
+
+Product create/update/status flows schedule search indexing after the database mutation. Indexing failures are logged and do not block product or moderation workflows. `POST /api/v1/admin/search/reindex` rebuilds active products from verified stores.
