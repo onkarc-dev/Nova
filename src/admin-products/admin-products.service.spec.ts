@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { ProductStatus } from '@prisma/client';
 import type { PrismaService } from '@database/prisma.service';
+import type { NotificationsService } from '@/notifications/notifications.service';
 import type { SearchService } from '@/search/search.service';
 import { AdminProductsService } from './admin-products.service';
 
@@ -17,7 +18,17 @@ describe('AdminProductsService', () => {
         update: jest.fn(),
       },
     };
-    return { prisma, searchService, service: new AdminProductsService(prisma as unknown as PrismaService, searchService as unknown as SearchService) };
+    const notificationsService = { notifyProductModeration: jest.fn().mockResolvedValue(undefined) };
+    return {
+      prisma,
+      searchService,
+      notificationsService,
+      service: new AdminProductsService(
+        prisma as unknown as PrismaService,
+        searchService as unknown as SearchService,
+        notificationsService as unknown as NotificationsService,
+      ),
+    };
   }
 
   it('approves a product by marking it active', async () => {

@@ -30,6 +30,7 @@ import { AnalyticsModule } from '@/analytics/analytics.module';
 import { ReturnsModule } from '@/returns/returns.module';
 import { EmailModule } from '@/email/email.module';
 import { ShipmentsModule } from '@/shipments/shipments.module';
+import { NotificationsModule } from '@/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { ShipmentsModule } from '@/shipments/shipments.module';
     AnalyticsModule,
     ReturnsModule,
     ShipmentsModule,
+    NotificationsModule,
     EmailModule,
     HealthModule,
   ],

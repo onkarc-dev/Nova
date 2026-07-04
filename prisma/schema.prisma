@@ -112,15 +112,44 @@ enum CouponType {
 enum NotificationChannel {
   EMAIL
   SMS
-  PUSH
+  WHATSAPP
   IN_APP
+}
+
+enum NotificationType {
+  ORDER_PLACED
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  REFUND_REQUESTED
+  REFUND_PROCESSED
+  SHIPMENT_CREATED
+  SHIPMENT_SHIPPED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED_DELIVERY
+  RETURN_REQUESTED
+  RETURN_APPROVED
+  RETURN_REJECTED
+  SELLER_NEW_ORDER
+  SELLER_PRODUCT_APPROVED
+  SELLER_PRODUCT_REJECTED
+  ADMIN_PAYMENT_FAILED
+  ADMIN_REFUND_ALERT
 }
 
 enum NotificationStatus {
   PENDING
   SENT
   FAILED
+  CANCELLED
   READ
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
 }
 
 enum TicketStatus {
@@ -656,17 +685,41 @@ model Rating {
 }
 
 model Notification {
-  id        String              @id @default(cuid())
-  userId    String
-  channel   NotificationChannel
-  status    NotificationStatus  @default(PENDING)
-  subject   String
-  body      String
-  metadata  Json?
-  sentAt    DateTime?
-  readAt    DateTime?
-  createdAt DateTime            @default(now())
-  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String                @id @default(cuid())
+  userId         String
+  type           NotificationType
+  channel        NotificationChannel
+  title          String
+  body           String
+  status         NotificationStatus    @default(PENDING)
+  priority       NotificationPriority  @default(NORMAL)
+  idempotencyKey String                @unique
+  metadata       Json?
+  readAt         DateTime?
+  sentAt         DateTime?
+  failedAt       DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  user           User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attempts       NotificationAttempt[]
+
+  @@index([userId, status, createdAt])
+  @@index([status, priority, createdAt])
+  @@index([type, createdAt])
+}
+
+model NotificationAttempt {
+  id             String             @id @default(cuid())
+  notificationId String
+  provider       String
+  status         NotificationStatus
+  errorMessage   String?
+  attemptedAt    DateTime           @default(now())
+  metadata       Json?
+  notification   Notification       @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId, attemptedAt])
+  @@index([status, attemptedAt])
 }
 
 model Invoice {

@@ -1,12 +1,16 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { OrderStatus, PaymentStatus, RefundStatus } from '@prisma/client';
+import { NotificationType, OrderStatus, PaymentStatus, RefundStatus } from '@prisma/client';
 import type { AuthUser } from '@/auth/interfaces/auth-user.interface';
+import { NotificationsService } from '@/notifications/notifications.service';
 import { PrismaService } from '@database/prisma.service';
 import type { CreateReturnDto, RejectReturnDto } from './dto/return.dto';
 
 @Injectable()
 export class ReturnsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async create(user: AuthUser, dto: CreateReturnDto) {
     const order = await this.prisma.order.findFirst({
@@ -20,10 +24,12 @@ export class ReturnsService {
     if (order.returns.some((item) => ['REQUESTED', 'APPROVED', 'REFUNDED'].includes(item.status))) {
       throw new BadRequestException('An active return already exists for this order.');
     }
-    return this.prisma.return.create({
+    const item = await this.prisma.return.create({
       data: { orderId: order.id, reason: `[${dto.type}] ${dto.reason}`, status: 'REQUESTED' },
       include: { order: { include: { items: true } } },
     });
+    await this.notificationsService.notifyReturnStatus(item.id, NotificationType.RETURN_REQUESTED);
+    return item;
   }
 
   list(user: AuthUser) {
@@ -76,16 +82,26 @@ export class ReturnsService {
       await tx.refund.create({
         data: { orderId: item.orderId, paymentId: payment.id, returnId: item.id, amountCents: payment.amountCents, reason: item.reason, status: RefundStatus.REQUESTED },
       });
-      return tx.return.update({ where: { id: item.id }, data: { status: 'REFUNDED' } });
+      const updated = await tx.return.update({ where: { id: item.id }, data: { status: 'REFUNDED' } });
+      await this.notificationsService.createFromEventTx(tx, {
+        userId: item.order.userId,
+        type: NotificationType.REFUND_REQUESTED,
+        idempotencyKey: `return:${item.id}:refund_requested:customer:${item.order.userId}`,
+        template: { orderNumber: item.order.orderNumber, returnId: item.id },
+        metadata: { returnId: item.id, orderId: item.orderId },
+      });
+      return updated;
     });
   }
 
   private async updateStatus(returnId: string, status: string, reason?: string) {
     const item = await this.prisma.return.findUnique({ where: { id: returnId } });
     if (!item) throw new NotFoundException('Return request not found.');
-    return this.prisma.return.update({
+    const updated = await this.prisma.return.update({
       where: { id: item.id },
       data: { status, reason: reason ? `${item.reason}\nAdmin note: ${reason}` : item.reason },
     });
+    await this.notificationsService.notifyReturnStatus(item.id, status === 'APPROVED' ? NotificationType.RETURN_APPROVED : NotificationType.RETURN_REJECTED);
+    return updated;
   }
 }

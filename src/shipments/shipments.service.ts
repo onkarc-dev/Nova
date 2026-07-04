@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { OrderStatus, Prisma, ShipmentProvider, ShipmentStatus } from '@prisma/client';
+import { NotificationType, OrderStatus, Prisma, ShipmentProvider, ShipmentStatus } from '@prisma/client';
 import type { AuthUser } from '@/auth/interfaces/auth-user.interface';
+import { NotificationsService } from '@/notifications/notifications.service';
 import { PrismaService } from '@database/prisma.service';
 import { ShipmentStateMachine } from './shipment-state-machine';
 import { ManualDeliveryProvider } from './providers/manual-delivery.provider';
@@ -11,7 +12,11 @@ export class ShipmentsService {
   private readonly logger = new Logger(ShipmentsService.name);
   private readonly stateMachine = new ShipmentStateMachine();
 
-  constructor(private readonly prisma: PrismaService, private readonly manualProvider: ManualDeliveryProvider) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly manualProvider: ManualDeliveryProvider,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async createShipmentPlaceholders(tx: Prisma.TransactionClient, orderId: string) {
     const order = await tx.order.findUnique({ where: { id: orderId }, include: { items: true, shipments: true } });
@@ -27,6 +32,7 @@ export class ShipmentsService {
         data: { orderId, sellerId: group.sellerId, storeId: group.storeId, provider: ShipmentProvider.MANUAL, status: ShipmentStatus.PENDING, estimatedDeliveryAt: eta },
       });
       await this.recordEvent(tx, shipment.id, ShipmentStatus.PENDING, 'Shipment created.', undefined, undefined, undefined, { hook: 'shipment.created' });
+      await this.createShipmentNotification(tx, shipment.id, NotificationType.SHIPMENT_CREATED, 'created');
       created.push(shipment);
     }
     return created;
@@ -74,6 +80,7 @@ export class ShipmentsService {
       if (dto.status === ShipmentStatus.CANCELLED) data.cancelledAt = now;
       await tx.shipment.update({ where: { id: current.id }, data });
       await this.recordEvent(tx, current.id, dto.status, dto.message ?? `Shipment marked ${dto.status}.`, dto.location, dto.occurredAt ? new Date(dto.occurredAt) : now, undefined, { actor, hook: this.hookFor(dto.status) });
+      await this.createShipmentNotification(tx, current.id, this.notificationTypeFor(dto.status), dto.status);
       return tx.shipment.findUniqueOrThrow({ where: { id: current.id }, include: this.shipmentInclude() });
     });
   }
@@ -121,4 +128,22 @@ export class ShipmentsService {
 
   private shipmentInclude() { return { order: { select: { id: true, orderNumber: true, userId: true, status: true } }, seller: { select: { id: true, businessName: true, userId: true } }, store: { select: { id: true, name: true } }, events: { orderBy: { occurredAt: 'asc' as const } } } satisfies Prisma.ShipmentInclude; }
   private hookFor(status: ShipmentStatus) { return ({ [ShipmentStatus.SHIPPED]: 'shipment.shipped', [ShipmentStatus.OUT_FOR_DELIVERY]: 'shipment.out_for_delivery', [ShipmentStatus.DELIVERED]: 'shipment.delivered', [ShipmentStatus.FAILED_DELIVERY]: 'shipment.failed_delivery' } as Partial<Record<ShipmentStatus, string>>)[status]; }
+  private notificationTypeFor(status: ShipmentStatus) { return ({ [ShipmentStatus.SHIPPED]: NotificationType.SHIPMENT_SHIPPED, [ShipmentStatus.OUT_FOR_DELIVERY]: NotificationType.OUT_FOR_DELIVERY, [ShipmentStatus.DELIVERED]: NotificationType.DELIVERED, [ShipmentStatus.FAILED_DELIVERY]: NotificationType.FAILED_DELIVERY } as Partial<Record<ShipmentStatus, NotificationType>>)[status]; }
+
+  private async createShipmentNotification(tx: Prisma.TransactionClient, shipmentId: string, type: NotificationType | undefined, status: ShipmentStatus | 'created') {
+    if (!type) return;
+    try {
+      const shipment = await tx.shipment.findUnique({ where: { id: shipmentId }, include: { order: true } });
+      if (!shipment) return;
+      await this.notificationsService.createFromEventTx(tx, {
+        userId: shipment.order.userId,
+        type,
+        idempotencyKey: `shipment:${shipment.id}:status:${status}:customer:${shipment.order.userId}`,
+        template: { orderNumber: shipment.order.orderNumber, shipmentId: shipment.id, status },
+        metadata: { shipmentId: shipment.id, orderId: shipment.orderId, status },
+      });
+    } catch (error) {
+      this.logger.error(`Shipment notification hook failed for ${shipmentId}.`, error instanceof Error ? error.stack : undefined);
+    }
+  }
 }

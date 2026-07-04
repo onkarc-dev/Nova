@@ -124,6 +124,9 @@ Phase F4 buyer commerce details are documented in
 Phase F5 order processing details are documented in
 `docs/phase-f5-order-processing.md`.
 
+Phase 5 notification engine details are documented in
+`docs/phase-f5-notification-engine.md`.
+
 ## Vision
 
 Build a production-grade regional marketplace inspired by Trendyol,
@@ -218,6 +221,77 @@ Tests Added:
 Remaining:
 
 Next Goal:
+
+---
+
+# Implementation Session - 2026-07-05 - Phase 5 Notification Engine
+
+Completed:
+
+- Added transactional notification architecture with provider, email-provider,
+  template, in-process queue fallback, service, and controller boundaries.
+- Added persisted in-app and console email notifications for payment,
+  shipment, return, refund, seller order, and product moderation events.
+- Added customer and admin notification APIs with ownership checks, unread
+  counts, mark-read, mark-all-read, failure listing, and retry.
+- Added notification idempotency keys, priority ordering, attempt tracking, and
+  safe non-blocking hook behavior.
+
+Files Changed:
+
+- `prisma/schema.prisma`
+- `prisma/migrations/20260705011500_notification_engine/migration.sql`
+- `src/notifications/*`
+- `src/payments/*`
+- `src/shipments/*`
+- `src/returns/*`
+- `src/admin-products/*`
+- `src/app.module.ts`
+- `src/config/*`
+- `packages/types/src/index.ts`
+- `packages/api-client/src/index.ts`
+- `.env.example`
+- `README.md`
+- `docs/cadde-store-mvp.md`
+- `docs/phase-f5-notification-engine.md`
+
+Database Changes:
+
+- Added `NotificationType` and `NotificationPriority`.
+- Extended `NotificationStatus` with `CANCELLED`.
+- Renamed notification `subject` to `title`.
+- Added notification `type`, `priority`, `idempotencyKey`, `failedAt`,
+  `updatedAt`, and indexes.
+- Added `NotificationAttempt`.
+
+APIs Added:
+
+- `GET /api/v1/notifications`
+- `GET /api/v1/notifications/unread-count`
+- `PATCH /api/v1/notifications/:notificationId/read`
+- `PATCH /api/v1/notifications/read-all`
+- `GET /api/v1/admin/notifications`
+- `GET /api/v1/admin/notifications/failures`
+- `POST /api/v1/admin/notifications/:notificationId/retry`
+
+Tests Added:
+
+- Notification provider tests.
+- Notification service tests for creation, unread count, ownership protection,
+  and retry behavior.
+
+Remaining:
+
+- Replace in-process queue fallback with BullMQ worker if Redis job processing
+  is adopted.
+- Implement real Resend/AWS SES transport after production email policy and
+  credentials are approved.
+- Keep SMS/WhatsApp as placeholders until paid provider configuration exists.
+
+Next Goal:
+
+- Build the next commerce phase only after this notification engine is
+  verified, committed, and pushed.
 
 ---
 

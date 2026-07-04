@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, ProductStatus } from '@prisma/client';
+import { NotificationsService } from '@/notifications/notifications.service';
 import { SearchService } from '@/search/search.service';
 import { PrismaService } from '@database/prisma.service';
 import type { ListAdminProductsDto } from './dto/admin-product.dto';
@@ -9,6 +10,7 @@ export class AdminProductsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly searchService: SearchService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   list(query: ListAdminProductsDto) {
@@ -39,6 +41,7 @@ export class AdminProductsService {
     } else {
       this.searchService.scheduleProductRemoval(updated.id);
     }
+    await this.notificationsService.notifyProductModeration(updated.id, status);
     return updated;
   }
 

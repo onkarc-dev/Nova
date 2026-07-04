@@ -624,6 +624,71 @@ export interface ReturnDto {
   order?: OrderDto;
 }
 
+export type NotificationChannel = 'EMAIL' | 'IN_APP' | 'SMS' | 'WHATSAPP';
+
+export type NotificationType =
+  | 'ORDER_PLACED'
+  | 'PAYMENT_SUCCESS'
+  | 'PAYMENT_FAILED'
+  | 'REFUND_REQUESTED'
+  | 'REFUND_PROCESSED'
+  | 'SHIPMENT_CREATED'
+  | 'SHIPMENT_SHIPPED'
+  | 'OUT_FOR_DELIVERY'
+  | 'DELIVERED'
+  | 'FAILED_DELIVERY'
+  | 'RETURN_REQUESTED'
+  | 'RETURN_APPROVED'
+  | 'RETURN_REJECTED'
+  | 'SELLER_NEW_ORDER'
+  | 'SELLER_PRODUCT_APPROVED'
+  | 'SELLER_PRODUCT_REJECTED'
+  | 'ADMIN_PAYMENT_FAILED'
+  | 'ADMIN_REFUND_ALERT';
+
+export type NotificationStatus = 'PENDING' | 'SENT' | 'FAILED' | 'CANCELLED' | 'READ';
+
+export type NotificationPriority = 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
+
+export interface NotificationAttemptDto {
+  id: string;
+  notificationId: string;
+  provider: string;
+  status: NotificationStatus;
+  errorMessage?: string | null;
+  attemptedAt: string;
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface NotificationDto {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  channel: NotificationChannel;
+  title: string;
+  body: string;
+  status: NotificationStatus;
+  priority: NotificationPriority;
+  idempotencyKey: string;
+  metadata?: Record<string, unknown> | null;
+  readAt?: string | null;
+  sentAt?: string | null;
+  failedAt?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  attempts?: NotificationAttemptDto[];
+}
+
+export interface NotificationUnreadCountDto {
+  count: number;
+}
+
+export interface ListNotificationsQuery {
+  page?: number;
+  limit?: number;
+  status?: NotificationStatus;
+}
+
 export interface CreateReturnRequestDto {
   orderId: string;
   type: 'RETURN' | 'EXCHANGE';

@@ -3,6 +3,7 @@ import { PaymentProvider, PaymentStatus, RefundStatus } from '@prisma/client';
 import type { Prisma } from '@prisma/client';
 import type { PrismaService } from '@database/prisma.service';
 import type { InventoryReservationService } from '@/inventory/inventory-reservation.service';
+import type { NotificationsService } from '@/notifications/notifications.service';
 import type { ShipmentsService } from '@/shipments/shipments.service';
 import { ManualPendingProvider } from './manual-pending.provider';
 import { PaymentService } from './payment.service';
@@ -34,7 +35,14 @@ describe('PaymentService', () => {
         create: jest.fn().mockResolvedValue({ id: 'txn_1' }),
       },
       order: {
+        findUnique: jest.fn().mockResolvedValue({ id: 'order_1', orderNumber: 'NOVA-1', userId: 'user_1', items: [] }),
         update: jest.fn().mockResolvedValue({ id: 'order_1' }),
+      },
+      seller: {
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+      user: {
+        findMany: jest.fn().mockResolvedValue([]),
       },
       refund: {
         create: jest.fn().mockResolvedValue({ id: 'refund_1', status: RefundStatus.REQUESTED }),
@@ -75,12 +83,14 @@ describe('PaymentService', () => {
       releaseOrderItems: jest.fn().mockResolvedValue(undefined),
     };
     const shipmentsService = { createShipmentPlaceholders: jest.fn().mockResolvedValue([]) };
+    const notificationsService = { createFromEventTx: jest.fn().mockResolvedValue([]) };
     const service = new PaymentService(
       prisma as unknown as PrismaService,
       new ManualPendingProvider(),
       razorpayProvider as unknown as RazorpayProvider,
       inventoryReservationService as unknown as InventoryReservationService,
       shipmentsService as unknown as ShipmentsService,
+      notificationsService as unknown as NotificationsService,
     );
     return { inventoryReservationService, payment, prisma, razorpayProvider, service, tx };
   }

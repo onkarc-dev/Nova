@@ -19,9 +19,12 @@ import type {
   LegacyApiErrorEnvelope,
   LegacyApiResponseEnvelope,
   ListCatalogQuery,
+  ListNotificationsQuery,
   ListProductsQuery,
   LoginRequestDto,
   LogoutResponseDto,
+  NotificationDto,
+  NotificationUnreadCountDto,
   OrderDto,
   PaginatedResult,
   PaymentDto,
@@ -349,6 +352,14 @@ export function createApiClient(options: ApiClientOptions = {}) {
       refunds: {
         list: (options?: RequestOptions) => request<RefundDto[]>('/api/v1/admin/refunds', { ...options, method: 'GET' }),
       },
+      notifications: {
+        list: (query?: ListNotificationsQuery, options?: RequestOptions) =>
+          request<NotificationDto[]>(withQuery('/api/v1/admin/notifications', query), { ...options, method: 'GET' }),
+        failures: (options?: RequestOptions) =>
+          request<NotificationDto[]>('/api/v1/admin/notifications/failures', { ...options, method: 'GET' }),
+        retry: (notificationId: string, options?: RequestOptions) =>
+          request<NotificationDto>(`/api/v1/admin/notifications/${encodeURIComponent(notificationId)}/retry`, { ...options, method: 'POST' }),
+      },
     },
     shipments: {
       tracking: (shipmentId: string, options?: RequestOptions) =>
@@ -377,6 +388,16 @@ export function createApiClient(options: ApiClientOptions = {}) {
       list: (options?: RequestOptions) => request<ReturnDto[]>('/api/v1/returns', { ...options, method: 'GET' }),
       get: (returnId: string, options?: RequestOptions) =>
         request<ReturnDto>(`/api/v1/returns/${encodeURIComponent(returnId)}`, { ...options, method: 'GET' }),
+    },
+    notifications: {
+      list: (query?: ListNotificationsQuery, options?: RequestOptions) =>
+        request<PaginatedResult<NotificationDto>>(withQuery('/api/v1/notifications', query), { ...options, method: 'GET' }),
+      unreadCount: (options?: RequestOptions) =>
+        request<NotificationUnreadCountDto>('/api/v1/notifications/unread-count', { ...options, method: 'GET' }),
+      markRead: (notificationId: string, options?: RequestOptions) =>
+        request<NotificationDto>(`/api/v1/notifications/${encodeURIComponent(notificationId)}/read`, { ...options, method: 'PATCH' }),
+      markAllRead: (options?: RequestOptions) =>
+        request<{ count: number }>('/api/v1/notifications/read-all', { ...options, method: 'PATCH' }),
     },
   };
 }

@@ -155,6 +155,8 @@ Razorpay webhooks must send the `x-razorpay-signature` header and preserve the r
 
 See [`docs/phase-f5-order-processing.md`](docs/phase-f5-order-processing.md) for order flow, inventory rules, payment architecture, and remaining gaps.
 
+See [`docs/phase-f5-notification-engine.md`](docs/phase-f5-notification-engine.md) for the transactional notification engine, provider design, idempotency, retry behavior, and notification APIs.
+
 ## Development standards
 
 - Preserve backward compatibility and avoid rewrites.

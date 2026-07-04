@@ -92,3 +92,25 @@ Implemented a shipment domain around orders and payments:
 - Customer APIs: `GET /api/v1/orders/:orderId/tracking`, `GET /api/v1/shipments/:shipmentId/tracking`.
 
 The manual provider is intentionally lightweight. It assigns a default ETA of five days, records manual tracking updates, and leaves paid courier API integration for a future logistics phase.
+
+## Phase 5 - Notification Engine
+
+Implemented transactional notifications for customer, seller, and admin
+operations:
+
+- Persisted `Notification` records with type, channel, priority, status,
+  idempotency key, read/sent/failed timestamps, and metadata.
+- Persisted `NotificationAttempt` rows for provider delivery attempts.
+- Default active channels are `IN_APP` and console-backed `EMAIL`.
+- Customer APIs: `GET /api/v1/notifications`, `GET
+  /api/v1/notifications/unread-count`, `PATCH
+  /api/v1/notifications/:notificationId/read`, `PATCH
+  /api/v1/notifications/read-all`.
+- Admin APIs: `GET /api/v1/admin/notifications`, `GET
+  /api/v1/admin/notifications/failures`, `POST
+  /api/v1/admin/notifications/:notificationId/retry`.
+
+Notification hooks are non-blocking for payment, shipment, return, refund, and
+product moderation flows. SMS, WhatsApp, Resend, and AWS SES are provider
+placeholders until real credentials and production delivery policies are
+approved.

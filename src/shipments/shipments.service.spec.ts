@@ -1,5 +1,6 @@
 import { ShipmentProvider, ShipmentStatus } from '@prisma/client';
 import type { PrismaService } from '@database/prisma.service';
+import type { NotificationsService } from '@/notifications/notifications.service';
 import { ManualDeliveryProvider } from './providers/manual-delivery.provider';
 import { ShipmentsService } from './shipments.service';
 
@@ -15,7 +16,12 @@ describe('ShipmentsService timeline', () => {
       ],
     };
     const prisma = { shipment: { findFirst: jest.fn().mockResolvedValue(shipment) } };
-    const service = new ShipmentsService(prisma as unknown as PrismaService, new ManualDeliveryProvider());
+    const notificationsService = { createFromEventTx: jest.fn().mockResolvedValue([]) };
+    const service = new ShipmentsService(
+      prisma as unknown as PrismaService,
+      new ManualDeliveryProvider(),
+      notificationsService as unknown as NotificationsService,
+    );
 
     const result = await service.getShipmentTracking({ id: 'user_1', email: 'u@example.com', roles: ['customer'] }, 'ship_1');
 

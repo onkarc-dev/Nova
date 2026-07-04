@@ -1,7 +1,8 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { OrderStatus, PaymentEventType, PaymentProvider, PaymentStatus, Prisma, RefundStatus, WebhookEventStatus } from '@prisma/client';
+import { NotificationPriority, NotificationType, OrderStatus, PaymentEventType, PaymentProvider, PaymentStatus, Prisma, RefundStatus, WebhookEventStatus } from '@prisma/client';
 import type { AuthUser } from '@/auth/interfaces/auth-user.interface';
 import { InventoryReservationService } from '@/inventory/inventory-reservation.service';
+import { NotificationsService } from '@/notifications/notifications.service';
 import { ShipmentsService } from '@/shipments/shipments.service';
 import { PrismaService } from '@database/prisma.service';
 import { ManualPendingProvider } from './manual-pending.provider';
@@ -26,6 +27,7 @@ export class PaymentService {
     private readonly razorpayProvider: RazorpayProvider,
     private readonly inventoryReservationService: InventoryReservationService,
     private readonly shipmentsService: ShipmentsService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async createPendingPayment(tx: Prisma.TransactionClient, input: CreatePendingPaymentInput) {
@@ -157,6 +159,11 @@ export class PaymentService {
         data: refundTransactionData,
       });
       await this.recordAudit(tx, payment.id, PaymentEventType.REFUND_PROCESSED, 'Refund processed.', { amountCents: dto.amountCents, refundId: refund.id });
+      if (providerResult.status !== PaymentStatus.FAILED) {
+        await this.createRefundProcessedNotifications(tx, refund.id);
+      } else {
+        await this.createAdminRefundAlertNotifications(tx, refund.id, payment.id);
+      }
 
       const updated = await tx.payment.findUnique({ where: { id: payment.id }, include: { refunds: true } });
       if (!updated) throw new NotFoundException('Payment not found.');
@@ -352,6 +359,7 @@ export class PaymentService {
     await this.inventoryReservationService.deductOrderItems(tx, payment.orderId);
     await this.recordAudit(tx, payment.id, PaymentEventType.CAPTURED, 'Payment captured and inventory deducted.', { providerPaymentId });
     await this.shipmentsService.createShipmentPlaceholders(tx, payment.orderId);
+    await this.createPaymentCapturedNotifications(tx, payment.id);
     return updated;
   }
 
@@ -388,6 +396,7 @@ export class PaymentService {
       data: { status: PaymentStatus.FAILED, providerPaymentId: providerRef ?? payment.providerPaymentId, providerRef: providerRef ?? payment.providerRef, failedAt: new Date() },
     });
     await this.recordAudit(tx, payment.id, PaymentEventType.FAILED, 'Payment failed and reserved inventory was released.', { providerRef });
+    await this.createPaymentFailedNotifications(tx, payment.id);
     return updated;
   }
 
@@ -430,6 +439,89 @@ export class PaymentService {
     const data: Prisma.PaymentAuditEventUncheckedCreateInput = { paymentId, type, message };
     if (metadata !== undefined) data.metadata = metadata;
     return tx.paymentAuditEvent.create({ data });
+  }
+
+  private async createPaymentCapturedNotifications(tx: Prisma.TransactionClient, paymentId: string): Promise<void> {
+    try {
+      const payment = await tx.payment.findUnique({ where: { id: paymentId }, include: { order: { include: { items: true } } } });
+      if (!payment) return;
+      await this.notificationsService.createFromEventTx(tx, {
+        userId: payment.order.userId,
+        type: NotificationType.PAYMENT_SUCCESS,
+        idempotencyKey: `payment:${payment.id}:captured:customer:${payment.order.userId}`,
+        template: { orderNumber: payment.order.orderNumber, paymentId: payment.id, amountCents: payment.amountCents, currency: payment.currency },
+        metadata: { paymentId: payment.id, orderId: payment.orderId },
+      });
+      const sellerIds = new Set(payment.order.items.map((item) => item.sellerId));
+      for (const sellerId of sellerIds) {
+        const seller = await tx.seller.findUnique({ where: { id: sellerId } });
+        if (!seller) continue;
+        await this.notificationsService.createFromEventTx(tx, {
+          userId: seller.userId,
+          type: NotificationType.SELLER_NEW_ORDER,
+          idempotencyKey: `order:${payment.orderId}:paid:seller:${seller.id}`,
+          template: { orderNumber: payment.order.orderNumber },
+          metadata: { orderId: payment.orderId, sellerId: seller.id },
+        });
+      }
+    } catch {
+      await this.recordAudit(tx, paymentId, PaymentEventType.CAPTURED, 'Payment notification hook failed but capture remained committed.');
+    }
+  }
+
+  private async createPaymentFailedNotifications(tx: Prisma.TransactionClient, paymentId: string): Promise<void> {
+    try {
+      const payment = await tx.payment.findUnique({ where: { id: paymentId }, include: { order: true } });
+      if (!payment) return;
+      await this.notificationsService.createFromEventTx(tx, {
+        userId: payment.order.userId,
+        type: NotificationType.PAYMENT_FAILED,
+        idempotencyKey: `payment:${payment.id}:failed:customer:${payment.order.userId}`,
+        template: { orderNumber: payment.order.orderNumber, paymentId: payment.id },
+        metadata: { paymentId: payment.id, orderId: payment.orderId },
+      });
+      await this.createAdminNotifications(tx, NotificationType.ADMIN_PAYMENT_FAILED, `payment:${payment.id}:failed:admin`, {
+        paymentId: payment.id,
+        orderId: payment.orderId,
+      });
+    } catch {
+      await this.recordAudit(tx, paymentId, PaymentEventType.FAILED, 'Payment failure notification hook failed but payment failure remained committed.');
+    }
+  }
+
+  private async createRefundProcessedNotifications(tx: Prisma.TransactionClient, refundId: string): Promise<void> {
+    const refund = await tx.refund.findUnique({ where: { id: refundId }, include: { order: true } });
+    if (!refund) return;
+    await this.notificationsService.createFromEventTx(tx, {
+      userId: refund.order.userId,
+      type: NotificationType.REFUND_PROCESSED,
+      idempotencyKey: `refund:${refund.id}:processed:customer:${refund.order.userId}`,
+      template: { orderNumber: refund.order.orderNumber, amountCents: refund.amountCents, currency: refund.order.currency },
+      metadata: { refundId: refund.id, orderId: refund.orderId },
+    });
+  }
+
+  private async createAdminRefundAlertNotifications(tx: Prisma.TransactionClient, refundId: string, paymentId: string): Promise<void> {
+    await this.createAdminNotifications(tx, NotificationType.ADMIN_REFUND_ALERT, `refund:${refundId}:failed:admin`, { refundId, paymentId }, NotificationPriority.CRITICAL);
+  }
+
+  private async createAdminNotifications(
+    tx: Prisma.TransactionClient,
+    type: NotificationType,
+    keyPrefix: string,
+    metadata: Prisma.InputJsonValue,
+    priority = NotificationPriority.CRITICAL,
+  ): Promise<void> {
+    const admins = await tx.user.findMany({ where: { roles: { some: { role: { name: 'admin' } } } }, select: { id: true } });
+    for (const admin of admins) {
+      await this.notificationsService.createFromEventTx(tx, {
+        userId: admin.id,
+        type,
+        idempotencyKey: `${keyPrefix}:user:${admin.id}`,
+        metadata,
+        priority,
+      });
+    }
   }
 
   private getCreateProvider(): PaymentProviderAdapter {
