@@ -13,7 +13,7 @@ import type { Environment } from '@config/environment';
 
 async function bootstrap(): Promise<void> {
   const startedAt = process.hrtime.bigint();
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
   const config = app.get(ConfigService<Environment, true>);
   const apiPrefix = config.get('API_PREFIX', { infer: true });
   const apiVersion = config.get('API_VERSION', { infer: true });

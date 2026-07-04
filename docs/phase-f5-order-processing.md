@@ -4,6 +4,12 @@ Date: 2026-07-03
 
 Status: COMPLETE
 
+Update: Phase 3 now supersedes the payment limitations in this document with
+Razorpay order creation, payment signature verification, idempotent webhooks,
+refunds, admin payment APIs, and service-level payment expiry cleanup. The
+order and inventory reservation flow below remains the foundation used by the
+payment engine.
+
 ## Scope Delivered
 
 - Real authenticated order creation with `POST /api/v1/orders`.

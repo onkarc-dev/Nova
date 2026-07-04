@@ -25,6 +25,7 @@ export const environmentSchema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
   RAZORPAY_KEY_ID: z.string().optional(),
   RAZORPAY_KEY_SECRET: z.string().optional(),
+  RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
   MEILISEARCH_HOST: z.string().url().optional().or(z.literal('')),
   MEILISEARCH_API_KEY: z.string().optional(),
   MEILISEARCH_INDEX_PRODUCTS: z.string().optional(),

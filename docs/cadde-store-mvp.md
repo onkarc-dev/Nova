@@ -22,7 +22,13 @@ Nova is being evolved into Cadde Store with an API-first backend boundary. Lovab
 - `POST /api/v1/payments/create`
 - `POST /api/v1/payments/verify`
 - `POST /api/v1/payments/webhook/razorpay`
+- `GET /api/v1/payments/:paymentId/status`
 - `POST /api/v1/payments/:paymentId/refund`
+- `GET /api/v1/admin/payments`
+- `GET /api/v1/admin/payments/:paymentId`
+- `POST /api/v1/admin/payments/:paymentId/refund`
+- `GET /api/v1/admin/refunds`
+- `POST /api/v1/admin/payments/expire`
 - `GET /api/v1/search/products`
 - `GET /api/v1/search/autocomplete?q=`
 - `POST /api/v1/admin/search/reindex`
@@ -57,7 +63,15 @@ Use `npm run db:migrate:dev` when a local PostgreSQL database is available and s
 
 ## Payment Notes
 
-Set `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET` for Razorpay. With no Razorpay credentials, the backend uses the existing manual pending provider for local development. Webhooks must include `x-razorpay-signature`; local forwarding tools should preserve the raw request body.
+Set `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET` for Razorpay. With no Razorpay credentials, the backend uses the `MANUAL_DEV` provider for local development. Webhooks must include `x-razorpay-signature`; local forwarding tools should preserve the raw request body.
+
+Payment state transitions are enforced in code:
+
+- `CREATED` -> `PENDING` -> `AUTHORIZED` -> `CAPTURED`
+- failure exits: `FAILED`, `CANCELLED`, `EXPIRED`
+- refund exits after capture: `PARTIALLY_REFUNDED`, `REFUNDED`
+
+Webhook idempotency is stored in `WebhookEvent` with provider/event uniqueness. Transaction and refund idempotency keys prevent duplicate captures, inventory deductions, inventory releases, and refunds. The expiry cleanup is implemented as service-level job logic and exposed through `POST /api/v1/admin/payments/expire`; wire this endpoint or `PaymentService.expirePendingPayments()` to future queue/scheduler infrastructure.
 
 ## Search Notes
 

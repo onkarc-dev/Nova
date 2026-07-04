@@ -1755,6 +1755,97 @@ Future hardening:
 `packages/api-client`:
 
 - Added typed auth functions: login, register, refresh, logout, me.
+
+---
+
+# Phase 3 Production Payment Engine - 2026-07-04
+
+Status: COMPLETE
+
+## Scope Delivered
+
+- Upgraded the existing payment foundation into a production payment engine.
+- Added provider-driven payment creation through `PaymentProviderAdapter`.
+- Added Razorpay order creation, payment signature verification, and webhook
+  signature verification using raw request bodies.
+- Added `MANUAL_DEV` fallback provider for safe local development when
+  Razorpay credentials are absent.
+- Added payment state-machine enforcement for `CREATED`, `PENDING`,
+  `AUTHORIZED`, `CAPTURED`, `FAILED`, `CANCELLED`, `REFUNDED`,
+  `PARTIALLY_REFUNDED`, and `EXPIRED`.
+- Added webhook idempotency through `WebhookEvent` uniqueness.
+- Added transaction/refund idempotency keys to prevent duplicate captures,
+  inventory deductions, inventory releases, and refunds.
+- Added payment audit events for created, verified/captured, failed, expired,
+  refund, duplicate webhook, and invalid webhook outcomes.
+- Added full and partial refund support with refund history and status
+  tracking.
+- Added service-level expiry cleanup that is safe to rerun and releases
+  reserved inventory once.
+
+## APIs Added Or Changed
+
+- `POST /api/v1/payments/create`
+- `POST /api/v1/payments/verify`
+- `POST /api/v1/payments/webhook/razorpay`
+- `GET /api/v1/payments/:paymentId/status`
+- `POST /api/v1/payments/:paymentId/refund` (admin-only)
+- `GET /api/v1/admin/payments`
+- `GET /api/v1/admin/payments/:paymentId`
+- `POST /api/v1/admin/payments/:paymentId/refund`
+- `GET /api/v1/admin/refunds`
+- `POST /api/v1/admin/payments/expire`
+
+## OOP And SOLID Decisions
+
+- Kept controllers thin and moved orchestration into `PaymentService`.
+- Kept gateway-specific behavior inside provider classes.
+- Used the provider/strategy pattern for Razorpay and manual development
+  fallback.
+- Added `PaymentStateMachine` as a small explicit domain policy object.
+- Preserved existing order and inventory service boundaries instead of
+  rewriting checkout or order creation.
+
+## Data Model Changes
+
+- Extended `Payment` with provider order/payment references, lifecycle
+  timestamps, refund totals, expiry, and metadata.
+- Added `WebhookEvent` for provider event deduplication.
+- Added `PaymentAuditEvent` for simple operational audit history.
+- Added `RefundStatus`.
+- Added transaction and refund idempotency keys.
+
+## Verification
+
+Passed:
+
+- `npm install`
+- `npm run db:format`
+- `npm run db:generate`
+- `npm run db:validate`
+- `npm run typecheck`
+- `npm run lint`
+- `npm test`
+
+Database-dependent checks:
+
+- `npm run db:migrate:dev` and `npm run db:seed` still require a reachable
+  local PostgreSQL database using `.env`.
+
+## Remaining Limitations
+
+- Expiry cleanup is implemented as service-level job logic and an admin
+  endpoint. It should be wired into queue/scheduler infrastructure later.
+- No seller payouts, delivery, recommendations, advanced analytics, or email
+  queue work was added in this phase.
+- Razorpay capture is supported at the provider boundary, but current order
+  creation requests automatic capture through Razorpay order creation.
+
+## Next Recommended Phase
+
+Build a focused shipping/delivery or admin payment operations phase only after
+Phase 3 is reviewed. Seller payouts should remain separate from this payment
+engine foundation.
 - Added account profile functions: get profile and update profile.
 - Existing bearer token attachment is now used by the web app.
 

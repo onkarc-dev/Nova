@@ -13,6 +13,7 @@ import type {
   CreateOrderRequestDto,
   CreateReturnRequestDto,
   CreateSellerProductRequestDto,
+  ExpirePaymentsResponseDto,
   AnalyticsRevenueDto,
   InventoryValidationDto,
   LegacyApiErrorEnvelope,
@@ -31,6 +32,8 @@ import type {
   SearchReindexResponseDto,
   RefreshTokenRequestDto,
   RegisterRequestDto,
+  RefundDto,
+  RefundPaymentRequestDto,
   ReturnDto,
   SellerDto,
   SellerInventoryDto,
@@ -300,14 +303,36 @@ export function createApiClient(options: ApiClientOptions = {}) {
         refund: (returnId: string, options?: RequestOptions) =>
           request<ReturnDto>(`/api/v1/admin/returns/${encodeURIComponent(returnId)}/refund`, { ...options, method: 'POST' }),
       },
+      payments: {
+        list: (options?: RequestOptions) => request<PaymentDto[]>('/api/v1/admin/payments', { ...options, method: 'GET' }),
+        get: (paymentId: string, options?: RequestOptions) =>
+          request<PaymentDto>(`/api/v1/admin/payments/${encodeURIComponent(paymentId)}`, { ...options, method: 'GET' }),
+        refund: (paymentId: string, body: RefundPaymentRequestDto, options?: RequestOptions) =>
+          request<PaymentDto>(`/api/v1/admin/payments/${encodeURIComponent(paymentId)}/refund`, {
+            ...options,
+            method: 'POST',
+            body,
+          }),
+        expire: (limit?: number, options?: RequestOptions) =>
+          request<ExpirePaymentsResponseDto>('/api/v1/admin/payments/expire', {
+            ...options,
+            method: 'POST',
+            body: limit ? { limit } : undefined,
+          }),
+      },
+      refunds: {
+        list: (options?: RequestOptions) => request<RefundDto[]>('/api/v1/admin/refunds', { ...options, method: 'GET' }),
+      },
     },
     payments: {
       create: (body: CreatePaymentRequestDto, options?: RequestOptions) =>
         request<CreatePaymentResponseDto>('/api/v1/payments/create', { ...options, method: 'POST', body }),
       verify: (body: VerifyPaymentRequestDto, options?: RequestOptions) =>
         request<PaymentDto>('/api/v1/payments/verify', { ...options, method: 'POST', body }),
-      refund: (paymentId: string, options?: RequestOptions) =>
-        request<PaymentDto>(`/api/v1/payments/${encodeURIComponent(paymentId)}/refund`, { ...options, method: 'POST' }),
+      status: (paymentId: string, options?: RequestOptions) =>
+        request<PaymentDto>(`/api/v1/payments/${encodeURIComponent(paymentId)}/status`, { ...options, method: 'GET' }),
+      refund: (paymentId: string, body: RefundPaymentRequestDto, options?: RequestOptions) =>
+        request<PaymentDto>(`/api/v1/payments/${encodeURIComponent(paymentId)}/refund`, { ...options, method: 'POST', body }),
     },
     search: {
       products: (query?: ProductSearchQuery, options?: RequestOptions) =>

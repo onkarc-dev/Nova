@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { OrderStatus, PaymentStatus } from '@prisma/client';
+import { OrderStatus, PaymentStatus, RefundStatus } from '@prisma/client';
 import type { AuthUser } from '@/auth/interfaces/auth-user.interface';
 import { PrismaService } from '@database/prisma.service';
 import type { CreateReturnDto, RejectReturnDto } from './dto/return.dto';
@@ -74,7 +74,7 @@ export class ReturnsService {
       const payment = item.order.payments.find((candidate) => candidate.status === PaymentStatus.CAPTURED || candidate.status === PaymentStatus.SUCCESS);
       if (!payment) throw new BadRequestException('No captured payment is available for refund.');
       await tx.refund.create({
-        data: { orderId: item.orderId, paymentId: payment.id, returnId: item.id, amountCents: payment.amountCents, reason: item.reason, status: 'PENDING' },
+        data: { orderId: item.orderId, paymentId: payment.id, returnId: item.id, amountCents: payment.amountCents, reason: item.reason, status: RefundStatus.REQUESTED },
       });
       return tx.return.update({ where: { id: item.id }, data: { status: 'REFUNDED' } });
     });

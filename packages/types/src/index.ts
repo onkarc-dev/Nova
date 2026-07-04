@@ -250,9 +250,21 @@ export type OrderStatus =
   | 'CANCELLED'
   | 'REFUNDED';
 
-export type PaymentStatus = 'PENDING' | 'AUTHORIZED' | 'CAPTURED' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'REFUNDED' | 'PARTIALLY_REFUNDED';
+export type PaymentStatus =
+  | 'CREATED'
+  | 'PENDING'
+  | 'AUTHORIZED'
+  | 'CAPTURED'
+  | 'SUCCESS'
+  | 'FAILED'
+  | 'CANCELLED'
+  | 'REFUNDED'
+  | 'PARTIALLY_REFUNDED'
+  | 'EXPIRED';
 
-export type PaymentProvider = 'NULL' | 'MANUAL_PENDING' | 'STRIPE' | 'RAZORPAY' | 'COD';
+export type PaymentProvider = 'NULL' | 'MANUAL_PENDING' | 'MANUAL_DEV' | 'STRIPE' | 'RAZORPAY' | 'COD';
+
+export type RefundStatus = 'REQUESTED' | 'PROCESSING' | 'PROCESSED' | 'FAILED' | 'CANCELLED';
 
 export interface PaymentDto {
   id: string;
@@ -262,6 +274,28 @@ export interface PaymentDto {
   amountCents: number;
   currency: string;
   providerRef?: string | null;
+  providerOrderId?: string | null;
+  providerPaymentId?: string | null;
+  refundedCents?: number;
+  expiresAt?: string | null;
+  authorizedAt?: string | null;
+  capturedAt?: string | null;
+  failedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  refunds?: RefundDto[];
+}
+
+export interface RefundDto {
+  id: string;
+  orderId: string;
+  paymentId?: string | null;
+  returnId?: string | null;
+  amountCents: number;
+  reason?: string | null;
+  status: RefundStatus;
+  providerRef?: string | null;
+  processedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -466,8 +500,21 @@ export interface CreatePaymentResponseDto {
 
 export interface VerifyPaymentRequestDto {
   paymentId: string;
+  providerOrderId: string;
+  providerPaymentId: string;
   providerRef?: string;
-  signature?: string;
+  signature: string;
+}
+
+export interface RefundPaymentRequestDto {
+  amountCents: number;
+  reason?: string;
+  idempotencyKey?: string;
+}
+
+export interface ExpirePaymentsResponseDto {
+  expiredCount: number;
+  paymentIds: string[];
 }
 
 export interface ProductSearchQuery extends ListProductsQuery {

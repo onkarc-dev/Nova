@@ -52,6 +52,7 @@ enum OrderStatus {
 }
 
 enum PaymentStatus {
+  CREATED
   PENDING
   AUTHORIZED
   CAPTURED
@@ -60,14 +61,46 @@ enum PaymentStatus {
   CANCELLED
   REFUNDED
   PARTIALLY_REFUNDED
+  EXPIRED
 }
 
 enum PaymentProvider {
   NULL
   MANUAL_PENDING
+  MANUAL_DEV
   STRIPE
   RAZORPAY
   COD
+}
+
+enum RefundStatus {
+  REQUESTED
+  PROCESSING
+  PROCESSED
+  FAILED
+  CANCELLED
+}
+
+enum PaymentEventType {
+  CREATED
+  VERIFIED
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  CANCELLED
+  EXPIRED
+  REFUND_REQUESTED
+  REFUND_PROCESSED
+  DUPLICATE_WEBHOOK_IGNORED
+  INVALID_WEBHOOK_REJECTED
+}
+
+enum WebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  DUPLICATE
+  INVALID
+  FAILED
 }
 
 enum CouponType {
@@ -490,30 +523,49 @@ model OrderItem {
 }
 
 model Payment {
-  id           String          @id @default(cuid())
-  orderId      String
-  provider     PaymentProvider
-  status       PaymentStatus   @default(PENDING)
-  amountCents  Int
-  currency     String          @default("INR")
-  providerRef  String?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  order        Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
-  refunds      Refund[]
+  id                String              @id @default(cuid())
+  orderId           String
+  provider          PaymentProvider
+  status            PaymentStatus       @default(CREATED)
+  amountCents       Int
+  currency          String              @default("INR")
+  providerRef       String?
+  providerOrderId   String?
+  providerPaymentId String?
+  providerSignature String?
+  refundedCents     Int                 @default(0)
+  expiresAt         DateTime?
+  authorizedAt      DateTime?
+  capturedAt        DateTime?
+  failedAt          DateTime?
+  cancelledAt       DateTime?
+  metadata          Json?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  order             Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  transactions      Transaction[]
+  refunds           Refund[]
+  auditEvents       PaymentAuditEvent[]
+
+  @@index([provider, providerOrderId])
+  @@index([providerPaymentId])
+  @@index([status, expiresAt])
 }
 
 model Transaction {
-  id          String        @id @default(cuid())
-  paymentId   String
-  type        String
-  status      PaymentStatus
-  amountCents Int
-  providerRef String?
-  rawResponse Json?
-  createdAt   DateTime      @default(now())
-  payment     Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  id             String        @id @default(cuid())
+  paymentId      String
+  type           String
+  status         PaymentStatus
+  amountCents    Int
+  providerRef    String?
+  idempotencyKey String?
+  rawResponse    Json?
+  createdAt      DateTime      @default(now())
+  payment        Payment       @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@unique([idempotencyKey])
+  @@index([paymentId, type])
 }
 
 model Coupon {
@@ -610,17 +662,56 @@ model Return {
 }
 
 model Refund {
-  id          String   @id @default(cuid())
-  orderId     String
-  paymentId   String?
-  returnId    String?
-  amountCents Int
-  reason      String?
-  status      String   @default("PENDING")
-  createdAt   DateTime @default(now())
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  payment     Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
-  return      Return?  @relation(fields: [returnId], references: [id], onDelete: SetNull)
+  id             String       @id @default(cuid())
+  orderId        String
+  paymentId      String?
+  returnId       String?
+  amountCents    Int
+  reason         String?
+  status         RefundStatus @default(REQUESTED)
+  providerRef    String?
+  idempotencyKey String?      @unique
+  rawResponse    Json?
+  processedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  order          Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  payment        Payment?     @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  return         Return?      @relation(fields: [returnId], references: [id], onDelete: SetNull)
+
+  @@index([paymentId, status])
+  @@index([orderId, status])
+}
+
+model PaymentAuditEvent {
+  id        String           @id @default(cuid())
+  paymentId String?
+  type      PaymentEventType
+  message   String?
+  metadata  Json?
+  createdAt DateTime         @default(now())
+  payment   Payment?         @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([paymentId, createdAt])
+  @@index([type, createdAt])
+}
+
+model WebhookEvent {
+  id             String             @id @default(cuid())
+  provider       PaymentProvider
+  eventId        String
+  eventType      String
+  idempotencyKey String             @unique
+  status         WebhookEventStatus @default(RECEIVED)
+  paymentId      String?
+  payload        Json?
+  receivedAt     DateTime           @default(now())
+  processedAt    DateTime?
+  errorMessage   String?
+
+  @@unique([provider, eventId])
+  @@index([provider, eventType])
+  @@index([paymentId])
 }
 
 model ActivityLog {

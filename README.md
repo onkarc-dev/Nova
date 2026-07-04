@@ -11,7 +11,7 @@ The backend foundation establishes persistence and API contracts for core commer
 - Shopper journeys for carts, wishlists, orders, payments, coupons, reviews, notifications, invoices, returns, refunds, search history, and recently viewed products.
 - Operational capabilities for CMS pages, settings, analytics events, support tickets, activity logs, and audit logs.
 
-Phase F1 introduces the production customer web foundation under `apps/web`, plus shared packages under `packages/api-client` and `packages/types`. Phase F2 connects the customer storefront to public catalog APIs for product browsing, category browsing, product detail pages, and search/filter foundations. Phase F3 connects login, signup, logout, refresh-token-ready session handling, and account overview surfaces to the real backend auth/account APIs. Phase F4 adds the buyer commerce foundation for wishlist, cart, checkout readiness, and read-only order history. Phase F5 creates real pending-payment orders with inventory reservation and pending payment architecture. The ShopNova Lovable prototype is a visual/product reference only; Nova's production frontend is built cleanly in this repository.
+Phase F1 introduces the production customer web foundation under `apps/web`, plus shared packages under `packages/api-client` and `packages/types`. Phase F2 connects the customer storefront to public catalog APIs for product browsing, category browsing, product detail pages, and search/filter foundations. Phase F3 connects login, signup, logout, refresh-token-ready session handling, and account overview surfaces to the real backend auth/account APIs. Phase F4 adds the buyer commerce foundation for wishlist, cart, checkout readiness, and read-only order history. Phase F5 creates real pending-payment orders with inventory reservation. Phase 3 adds the production payment engine with Razorpay order creation, signature verification, idempotent webhooks, refunds, expiry cleanup, and admin payment visibility. The ShopNova Lovable prototype is a visual/product reference only; Nova's production frontend is built cleanly in this repository.
 
 ## Repository structure
 
@@ -136,7 +136,22 @@ Buyer commerce calls currently target:
 - `GET /api/v1/orders/:id`
 - `GET /api/v1/inventory/cart/:cartId/validate`
 
-Checkout now creates real orders through the order API. Orders start as `PENDING_PAYMENT`, inventory is reserved, and a pending manual payment record is created. Nova still does not capture payment or mark an order paid in this phase.
+Checkout now creates real orders through the order API. Orders start as `PENDING_PAYMENT`, inventory is reserved, and a payment record is created through the configured provider. Razorpay is used when `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` are configured; otherwise Nova uses the `MANUAL_DEV` provider for local development without hardcoded gateway secrets.
+
+Payment calls currently target:
+
+- `POST /api/v1/payments/create`
+- `POST /api/v1/payments/verify`
+- `POST /api/v1/payments/webhook/razorpay`
+- `GET /api/v1/payments/:paymentId/status`
+- `POST /api/v1/payments/:paymentId/refund` (admin)
+- `GET /api/v1/admin/payments`
+- `GET /api/v1/admin/payments/:paymentId`
+- `POST /api/v1/admin/payments/:paymentId/refund`
+- `GET /api/v1/admin/refunds`
+- `POST /api/v1/admin/payments/expire`
+
+Razorpay webhooks must send the `x-razorpay-signature` header and preserve the raw request body. The payment service records `WebhookEvent` idempotency keys so duplicate captures, failures, refunds, and expiry runs do not double-deduct or double-release inventory. Schedule `POST /api/v1/admin/payments/expire` or call `PaymentService.expirePendingPayments()` from future queue infrastructure to release expired pending reservations.
 
 See [`docs/phase-f5-order-processing.md`](docs/phase-f5-order-processing.md) for order flow, inventory rules, payment architecture, and remaining gaps.
 
@@ -196,7 +211,7 @@ Customer storefront routes:
 - `/account/payment-methods`
 - `/account/notifications`
 
-Not implemented yet: payment capture, payment webhooks, reservation expiry/release jobs, shipping integrations, returns, coupons, seller dashboard, admin dashboard, and inventory management UI.
+Not implemented yet: delivery integrations, seller payouts, advanced analytics, recommendation systems, email queue delivery, coupons, seller dashboard UI, admin dashboard UI, and inventory management UI.
 
 Auth/account integration:
 
