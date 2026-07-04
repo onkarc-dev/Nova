@@ -3,6 +3,7 @@ import { PaymentProvider, PaymentStatus, RefundStatus } from '@prisma/client';
 import type { Prisma } from '@prisma/client';
 import type { PrismaService } from '@database/prisma.service';
 import type { InventoryReservationService } from '@/inventory/inventory-reservation.service';
+import type { ShipmentsService } from '@/shipments/shipments.service';
 import { ManualPendingProvider } from './manual-pending.provider';
 import { PaymentService } from './payment.service';
 import type { RazorpayProvider } from './razorpay.provider';
@@ -73,11 +74,13 @@ describe('PaymentService', () => {
       deductOrderItems: jest.fn().mockResolvedValue(undefined),
       releaseOrderItems: jest.fn().mockResolvedValue(undefined),
     };
+    const shipmentsService = { createShipmentPlaceholders: jest.fn().mockResolvedValue([]) };
     const service = new PaymentService(
       prisma as unknown as PrismaService,
       new ManualPendingProvider(),
       razorpayProvider as unknown as RazorpayProvider,
       inventoryReservationService as unknown as InventoryReservationService,
+      shipmentsService as unknown as ShipmentsService,
     );
     return { inventoryReservationService, payment, prisma, razorpayProvider, service, tx };
   }

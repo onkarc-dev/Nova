@@ -1899,3 +1899,13 @@ GO for wishlist backend integration only after Phase F3 is accepted.
 
 NO-GO for cart, orders, checkout, payments, shipping, or returns until the
 wishlist batch is implemented and verified.
+
+## Phase 4 — Delivery & Shipment Engine
+
+- Added shipment provider architecture with `DeliveryProvider` and default `ManualDeliveryProvider`.
+- Added Prisma `ShipmentProvider`, `ShipmentStatus`, `Shipment`, and `ShipmentEvent`.
+- Captured payments now create shipment placeholders inside the payment transaction after inventory deduction and order confirmation.
+- Added backend-only shipment state machine and append-only event timeline with sort/dedupe for customer tracking responses.
+- Added seller/admin/customer shipment APIs and API client/types support.
+- Notification phase preparation is represented as internal shipment event metadata hooks; no email/SMS queue was added.
+- Current limitation: no real Shiprocket/Delhivery/Porter API calls; manual provider is the only active provider.

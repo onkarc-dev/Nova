@@ -80,3 +80,15 @@ Webhook idempotency is stored in `WebhookEvent` with provider/event uniqueness. 
 Search supports keyword relevance, category, brand, seller/store, price range, newest, name, and real minimum active variant price sorting. Autocomplete normalizes lowercase text, ranks exact prefix matches above contains matches, deduplicates normalized values, and returns product, category, brand, and store suggestions.
 
 Product create/update/status flows schedule search indexing after the database mutation. Indexing failures are logged and do not block product or moderation workflows. `POST /api/v1/admin/search/reindex` rebuilds active products from verified stores.
+
+## Phase 4 — Delivery & Shipment Engine
+
+Implemented a shipment domain around orders and payments:
+
+- `Shipment` stores provider, seller/store ownership, status, tracking fields, ETA, and lifecycle timestamps.
+- `ShipmentEvent` stores append-only status/tracking timeline events sorted by occurrence time.
+- Seller APIs: `GET /api/v1/seller/shipments`, `GET /api/v1/seller/shipments/:shipmentId`, `PATCH /api/v1/seller/shipments/:shipmentId/status`, `PATCH /api/v1/seller/shipments/:shipmentId/tracking`.
+- Admin APIs: `GET /api/v1/admin/shipments`, `GET /api/v1/admin/shipments/:shipmentId`, `PATCH /api/v1/admin/shipments/:shipmentId/status`, `PATCH /api/v1/admin/shipments/:shipmentId/tracking`, `POST /api/v1/admin/shipments/:shipmentId/cancel`.
+- Customer APIs: `GET /api/v1/orders/:orderId/tracking`, `GET /api/v1/shipments/:shipmentId/tracking`.
+
+The manual provider is intentionally lightweight. It assigns a default ETA of five days, records manual tracking updates, and leaves paid courier API integration for a future logistics phase.

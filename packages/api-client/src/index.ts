@@ -37,8 +37,12 @@ import type {
   ReturnDto,
   SellerDto,
   SellerInventoryDto,
+  ShipmentDto,
+  ShipmentTrackingDto,
   UpdateSellerInventoryRequestDto,
   UpdateSellerProductRequestDto,
+  UpdateShipmentStatusRequestDto,
+  UpdateShipmentTrackingRequestDto,
   UpdateUserProfileDto,
   UserProfileDto,
   VerifyPaymentRequestDto,
@@ -228,6 +232,8 @@ export function createApiClient(options: ApiClientOptions = {}) {
         request<OrderDto>('/api/v1/orders', { ...options, method: 'POST', body }),
       get: (orderId: string, options?: RequestOptions) =>
         request<OrderDto>(`/api/v1/orders/${encodeURIComponent(orderId)}`, { ...options, method: 'GET' }),
+      tracking: (orderId: string, options?: RequestOptions) =>
+        request<ShipmentTrackingDto[]>(`/api/v1/orders/${encodeURIComponent(orderId)}/tracking`, { ...options, method: 'GET' }),
     },
     inventory: {
       validateCart: (cartId: string, options?: RequestOptions) =>
@@ -256,6 +262,15 @@ export function createApiClient(options: ApiClientOptions = {}) {
             method: 'PATCH',
             body,
           }),
+      },
+      shipments: {
+        list: (options?: RequestOptions) => request<ShipmentDto[]>('/api/v1/seller/shipments', { ...options, method: 'GET' }),
+        get: (shipmentId: string, options?: RequestOptions) =>
+          request<ShipmentDto>(`/api/v1/seller/shipments/${encodeURIComponent(shipmentId)}`, { ...options, method: 'GET' }),
+        updateStatus: (shipmentId: string, body: UpdateShipmentStatusRequestDto, options?: RequestOptions) =>
+          request<ShipmentDto>(`/api/v1/seller/shipments/${encodeURIComponent(shipmentId)}/status`, { ...options, method: 'PATCH', body }),
+        updateTracking: (shipmentId: string, body: UpdateShipmentTrackingRequestDto, options?: RequestOptions) =>
+          request<ShipmentDto>(`/api/v1/seller/shipments/${encodeURIComponent(shipmentId)}/tracking`, { ...options, method: 'PATCH', body }),
       },
       analytics: {
         revenue: (options?: RequestOptions) =>
@@ -320,9 +335,24 @@ export function createApiClient(options: ApiClientOptions = {}) {
             body: limit ? { limit } : undefined,
           }),
       },
+      shipments: {
+        list: (options?: RequestOptions) => request<ShipmentDto[]>('/api/v1/admin/shipments', { ...options, method: 'GET' }),
+        get: (shipmentId: string, options?: RequestOptions) =>
+          request<ShipmentDto>(`/api/v1/admin/shipments/${encodeURIComponent(shipmentId)}`, { ...options, method: 'GET' }),
+        updateStatus: (shipmentId: string, body: UpdateShipmentStatusRequestDto, options?: RequestOptions) =>
+          request<ShipmentDto>(`/api/v1/admin/shipments/${encodeURIComponent(shipmentId)}/status`, { ...options, method: 'PATCH', body }),
+        updateTracking: (shipmentId: string, body: UpdateShipmentTrackingRequestDto, options?: RequestOptions) =>
+          request<ShipmentDto>(`/api/v1/admin/shipments/${encodeURIComponent(shipmentId)}/tracking`, { ...options, method: 'PATCH', body }),
+        cancel: (shipmentId: string, options?: RequestOptions) =>
+          request<ShipmentDto>(`/api/v1/admin/shipments/${encodeURIComponent(shipmentId)}/cancel`, { ...options, method: 'POST' }),
+      },
       refunds: {
         list: (options?: RequestOptions) => request<RefundDto[]>('/api/v1/admin/refunds', { ...options, method: 'GET' }),
       },
+    },
+    shipments: {
+      tracking: (shipmentId: string, options?: RequestOptions) =>
+        request<ShipmentTrackingDto>(`/api/v1/shipments/${encodeURIComponent(shipmentId)}/tracking`, { ...options, method: 'GET' }),
     },
     payments: {
       create: (body: CreatePaymentRequestDto, options?: RequestOptions) =>
