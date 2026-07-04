@@ -25,7 +25,10 @@ import type {
   PaginatedResult,
   PaymentDto,
   ProductDto,
+  ProductAutocompleteQuery,
+  ProductAutocompleteSuggestionDto,
   ProductSearchQuery,
+  SearchReindexResponseDto,
   RefreshTokenRequestDto,
   RegisterRequestDto,
   ReturnDto,
@@ -287,7 +290,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
         products: (options?: RequestOptions) => request<unknown[]>('/api/v1/admin/analytics/products', { ...options, method: 'GET' }),
       },
       search: {
-        reindex: (options?: RequestOptions) => request<{ provider: string; indexedProducts: number }>('/api/v1/admin/search/reindex', { ...options, method: 'POST' }),
+        reindex: (options?: RequestOptions) => request<SearchReindexResponseDto>('/api/v1/admin/search/reindex', { ...options, method: 'POST' }),
       },
       returns: {
         approve: (returnId: string, options?: RequestOptions) =>
@@ -309,6 +312,9 @@ export function createApiClient(options: ApiClientOptions = {}) {
     search: {
       products: (query?: ProductSearchQuery, options?: RequestOptions) =>
         request<PaginatedResult<ProductDto>>(withQuery('/api/v1/search/products', query), { ...options, method: 'GET', auth: false }),
+      autocomplete: (query: ProductAutocompleteQuery, options?: RequestOptions) =>
+        request<ProductAutocompleteSuggestionDto[]>(withQuery('/api/v1/search/autocomplete', query), { ...options, method: 'GET', auth: false }),
+      reindex: (options?: RequestOptions) => request<SearchReindexResponseDto>('/api/v1/admin/search/reindex', { ...options, method: 'POST' }),
     },
     returns: {
       create: (body: CreateReturnRequestDto, options?: RequestOptions) =>

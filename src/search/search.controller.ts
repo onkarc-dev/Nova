@@ -2,7 +2,7 @@ import { Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { Roles } from '@/auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/auth/guards/roles.guard';
-import { SearchProductsDto } from './dto/search-products.dto';
+import { AutocompleteProductsDto, SearchProductsDto } from './dto/search-products.dto';
 import { SearchService } from './search.service';
 
 @Controller()
@@ -14,6 +14,11 @@ export class SearchController {
     return this.searchService.searchProducts(query);
   }
 
+  @Get('search/autocomplete')
+  autocompleteProducts(@Query() query: AutocompleteProductsDto) {
+    return this.searchService.autocompleteProducts(query.q, query.limit);
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   @Post('admin/search/reindex')
@@ -21,4 +26,3 @@ export class SearchController {
     return this.searchService.reindex();
   }
 }
-

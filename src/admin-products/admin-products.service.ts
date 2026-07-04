@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, ProductStatus } from '@prisma/client';
+import { SearchService } from '@/search/search.service';
 import { PrismaService } from '@database/prisma.service';
 import type { ListAdminProductsDto } from './dto/admin-product.dto';
 
 @Injectable()
 export class AdminProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly searchService: SearchService,
+  ) {}
 
   list(query: ListAdminProductsDto) {
     const where: Prisma.ProductWhereInput = {};
@@ -29,7 +33,13 @@ export class AdminProductsService {
   async updateStatus(productId: string, status: ProductStatus) {
     const product = await this.prisma.product.findUnique({ where: { id: productId }, select: { id: true } });
     if (!product) throw new NotFoundException('Product not found.');
-    return this.prisma.product.update({ where: { id: product.id }, data: { status }, include: this.includeProduct() });
+    const updated = await this.prisma.product.update({ where: { id: product.id }, data: { status }, include: this.includeProduct() });
+    if (status === ProductStatus.ACTIVE) {
+      this.searchService.scheduleProductIndex(updated.id);
+    } else {
+      this.searchService.scheduleProductRemoval(updated.id);
+    }
+    return updated;
   }
 
   private includeProduct() {

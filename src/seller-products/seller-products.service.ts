@@ -2,11 +2,15 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { Prisma, ProductStatus, SellerStatus } from '@prisma/client';
 import type { AuthUser } from '@/auth/interfaces/auth-user.interface';
 import { PrismaService } from '@database/prisma.service';
+import { SearchService } from '@/search/search.service';
 import type { CreateSellerProductDto, SellerProductVariantDto, UpdateSellerProductDto } from './dto/seller-product.dto';
 
 @Injectable()
 export class SellerProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly searchService: SearchService,
+  ) {}
 
   listMine(user: AuthUser) {
     return this.prisma.product.findMany({
@@ -49,6 +53,7 @@ export class SellerProductsService {
         },
         include: this.includeProduct(),
       });
+      this.searchService.scheduleProductIndex(product.id);
       return product;
     } catch (error) {
       if (this.isUniqueConstraintError(error)) throw new ConflictException('Product slug or SKU already exists.');
@@ -64,7 +69,7 @@ export class SellerProductsService {
     if (!product) throw new NotFoundException('Product not found.');
 
     try {
-      return await this.prisma.runInTransaction(async (tx) => {
+      const updatedProduct = await this.prisma.runInTransaction(async (tx) => {
         await tx.product.update({ where: { id: product.id }, data: this.toProductUpdate(dto) });
         if (dto.variants) {
           await this.syncVariants(tx, product.id, dto.variants);
@@ -79,6 +84,8 @@ export class SellerProductsService {
         if (!updated) throw new NotFoundException('Product not found.');
         return updated;
       });
+      this.searchService.scheduleProductIndex(updatedProduct.id);
+      return updatedProduct;
     } catch (error) {
       if (this.isUniqueConstraintError(error)) throw new ConflictException('Product slug or SKU already exists.');
       throw error;
@@ -91,7 +98,9 @@ export class SellerProductsService {
       select: { id: true },
     });
     if (!product) throw new NotFoundException('Product not found.');
-    return this.prisma.product.update({ where: { id: product.id }, data: { status: ProductStatus.ARCHIVED }, include: this.includeProduct() });
+    const archived = await this.prisma.product.update({ where: { id: product.id }, data: { status: ProductStatus.ARCHIVED }, include: this.includeProduct() });
+    this.searchService.scheduleProductRemoval(archived.id);
+    return archived;
   }
 
   private async syncVariants(tx: Prisma.TransactionClient, productId: string, variants: SellerProductVariantDto[]) {
