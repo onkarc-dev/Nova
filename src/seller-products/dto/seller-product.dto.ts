@@ -3,6 +3,10 @@ import { Type } from 'class-transformer';
 import { ProductStatus } from '@prisma/client';
 
 export class SellerProductVariantDto {
+  @IsOptional()
+  @IsString()
+  id?: string;
+
   @IsString()
   @IsNotEmpty()
   sku!: string;

@@ -404,6 +404,8 @@ export interface ProductDto {
 }
 
 export interface SellerProductVariantInput {
+  /** Stable variant id for safe seller updates; omit when creating a new variant. */
+  id?: string;
   sku: string;
   name: string;
   priceCents: number;
