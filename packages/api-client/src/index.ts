@@ -8,7 +8,12 @@ import type {
   CheckoutDraftDto,
   CheckoutValidationDto,
   CheckoutValidationRequestDto,
+  CreatePaymentRequestDto,
+  CreatePaymentResponseDto,
   CreateOrderRequestDto,
+  CreateReturnRequestDto,
+  CreateSellerProductRequestDto,
+  AnalyticsRevenueDto,
   InventoryValidationDto,
   LegacyApiErrorEnvelope,
   LegacyApiResponseEnvelope,
@@ -18,11 +23,19 @@ import type {
   LogoutResponseDto,
   OrderDto,
   PaginatedResult,
+  PaymentDto,
   ProductDto,
+  ProductSearchQuery,
   RefreshTokenRequestDto,
   RegisterRequestDto,
+  ReturnDto,
+  SellerDto,
+  SellerInventoryDto,
+  UpdateSellerInventoryRequestDto,
+  UpdateSellerProductRequestDto,
   UpdateUserProfileDto,
   UserProfileDto,
+  VerifyPaymentRequestDto,
   WishlistDto,
 } from '@nova/types';
 
@@ -216,6 +229,93 @@ export function createApiClient(options: ApiClientOptions = {}) {
           ...options,
           method: 'GET',
         }),
+    },
+    seller: {
+      products: {
+        list: (options?: RequestOptions) => request<ProductDto[]>('/api/v1/seller/products', { ...options, method: 'GET' }),
+        get: (productId: string, options?: RequestOptions) =>
+          request<ProductDto>(`/api/v1/seller/products/${encodeURIComponent(productId)}`, { ...options, method: 'GET' }),
+        create: (body: CreateSellerProductRequestDto, options?: RequestOptions) =>
+          request<ProductDto>('/api/v1/seller/products', { ...options, method: 'POST', body }),
+        update: (productId: string, body: UpdateSellerProductRequestDto, options?: RequestOptions) =>
+          request<ProductDto>(`/api/v1/seller/products/${encodeURIComponent(productId)}`, { ...options, method: 'PATCH', body }),
+        delete: (productId: string, options?: RequestOptions) =>
+          request<ProductDto>(`/api/v1/seller/products/${encodeURIComponent(productId)}`, { ...options, method: 'DELETE' }),
+      },
+      inventory: {
+        list: (options?: RequestOptions) => request<SellerInventoryDto[]>('/api/v1/seller/inventory', { ...options, method: 'GET' }),
+        update: (variantId: string, body: UpdateSellerInventoryRequestDto, options?: RequestOptions) =>
+          request<SellerInventoryDto>(`/api/v1/seller/inventory/${encodeURIComponent(variantId)}`, {
+            ...options,
+            method: 'PATCH',
+            body,
+          }),
+      },
+      analytics: {
+        revenue: (options?: RequestOptions) =>
+          request<AnalyticsRevenueDto>('/api/v1/seller/analytics/revenue', { ...options, method: 'GET' }),
+        products: (options?: RequestOptions) => request<unknown[]>('/api/v1/seller/analytics/products', { ...options, method: 'GET' }),
+      },
+    },
+    admin: {
+      sellers: {
+        list: (options?: RequestOptions) => request<SellerDto[]>('/api/v1/admin/sellers', { ...options, method: 'GET' }),
+        approve: (sellerId: string, options?: RequestOptions) =>
+          request<SellerDto>(`/api/v1/admin/sellers/${encodeURIComponent(sellerId)}/approve`, { ...options, method: 'POST' }),
+        reject: (sellerId: string, options?: RequestOptions) =>
+          request<SellerDto>(`/api/v1/admin/sellers/${encodeURIComponent(sellerId)}/reject`, { ...options, method: 'POST' }),
+        suspend: (sellerId: string, options?: RequestOptions) =>
+          request<SellerDto>(`/api/v1/admin/sellers/${encodeURIComponent(sellerId)}/suspend`, { ...options, method: 'POST' }),
+      },
+      products: {
+        list: (options?: RequestOptions) => request<ProductDto[]>('/api/v1/admin/products', { ...options, method: 'GET' }),
+        approve: (productId: string, options?: RequestOptions) =>
+          request<ProductDto>(`/api/v1/admin/products/${encodeURIComponent(productId)}/approve`, { ...options, method: 'POST' }),
+        reject: (productId: string, options?: RequestOptions) =>
+          request<ProductDto>(`/api/v1/admin/products/${encodeURIComponent(productId)}/reject`, { ...options, method: 'POST' }),
+        updateStatus: (productId: string, status: ProductDto['status'], options?: RequestOptions) =>
+          request<ProductDto>(`/api/v1/admin/products/${encodeURIComponent(productId)}/status`, {
+            ...options,
+            method: 'PATCH',
+            body: { status },
+          }),
+      },
+      analytics: {
+        revenue: (options?: RequestOptions) =>
+          request<AnalyticsRevenueDto>('/api/v1/admin/analytics/revenue', { ...options, method: 'GET' }),
+        categories: (options?: RequestOptions) => request<unknown[]>('/api/v1/admin/analytics/categories', { ...options, method: 'GET' }),
+        products: (options?: RequestOptions) => request<unknown[]>('/api/v1/admin/analytics/products', { ...options, method: 'GET' }),
+      },
+      search: {
+        reindex: (options?: RequestOptions) => request<{ provider: string; indexedProducts: number }>('/api/v1/admin/search/reindex', { ...options, method: 'POST' }),
+      },
+      returns: {
+        approve: (returnId: string, options?: RequestOptions) =>
+          request<ReturnDto>(`/api/v1/admin/returns/${encodeURIComponent(returnId)}/approve`, { ...options, method: 'POST' }),
+        reject: (returnId: string, reason?: string, options?: RequestOptions) =>
+          request<ReturnDto>(`/api/v1/admin/returns/${encodeURIComponent(returnId)}/reject`, { ...options, method: 'POST', body: { reason } }),
+        refund: (returnId: string, options?: RequestOptions) =>
+          request<ReturnDto>(`/api/v1/admin/returns/${encodeURIComponent(returnId)}/refund`, { ...options, method: 'POST' }),
+      },
+    },
+    payments: {
+      create: (body: CreatePaymentRequestDto, options?: RequestOptions) =>
+        request<CreatePaymentResponseDto>('/api/v1/payments/create', { ...options, method: 'POST', body }),
+      verify: (body: VerifyPaymentRequestDto, options?: RequestOptions) =>
+        request<PaymentDto>('/api/v1/payments/verify', { ...options, method: 'POST', body }),
+      refund: (paymentId: string, options?: RequestOptions) =>
+        request<PaymentDto>(`/api/v1/payments/${encodeURIComponent(paymentId)}/refund`, { ...options, method: 'POST' }),
+    },
+    search: {
+      products: (query?: ProductSearchQuery, options?: RequestOptions) =>
+        request<PaginatedResult<ProductDto>>(withQuery('/api/v1/search/products', query), { ...options, method: 'GET', auth: false }),
+    },
+    returns: {
+      create: (body: CreateReturnRequestDto, options?: RequestOptions) =>
+        request<ReturnDto>('/api/v1/returns', { ...options, method: 'POST', body }),
+      list: (options?: RequestOptions) => request<ReturnDto[]>('/api/v1/returns', { ...options, method: 'GET' }),
+      get: (returnId: string, options?: RequestOptions) =>
+        request<ReturnDto>(`/api/v1/returns/${encodeURIComponent(returnId)}`, { ...options, method: 'GET' }),
     },
   };
 }

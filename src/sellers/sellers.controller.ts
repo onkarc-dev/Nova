@@ -58,6 +58,11 @@ export class AdminSellersController {
     return this.sellersService.listApplications(query);
   }
 
+  @Get()
+  listSellers(@Query() query: ListSellerApplicationsDto) {
+    return this.sellersService.listApplications(query);
+  }
+
   @Post(':sellerId/approve')
   approve(@Param('sellerId') sellerId: string) {
     return this.sellersService.approve(sellerId);

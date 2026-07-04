@@ -403,6 +403,103 @@ export interface ProductDto {
   updatedAt?: string;
 }
 
+export interface SellerProductVariantInput {
+  sku: string;
+  name: string;
+  priceCents: number;
+  compareAtCents?: number;
+  currency?: string;
+  attributes?: Record<string, string | number | boolean>;
+  isActive?: boolean;
+}
+
+export interface SellerProductImageInput {
+  url: string;
+  altText?: string;
+  sortOrder?: number;
+  isPrimary?: boolean;
+}
+
+export interface CreateSellerProductRequestDto {
+  storeId: string;
+  categoryId: string;
+  brandId?: string;
+  name: string;
+  slug?: string;
+  description: string;
+  status?: ProductDto['status'];
+  variants: SellerProductVariantInput[];
+  images?: SellerProductImageInput[];
+}
+
+export type UpdateSellerProductRequestDto = Partial<Omit<CreateSellerProductRequestDto, 'storeId'>>;
+
+export interface SellerInventoryDto {
+  id: string;
+  storeId: string;
+  variantId: string;
+  warehouseId: string;
+  onHand: number;
+  reserved: number;
+  safetyStock: number;
+  updatedAt?: string;
+  variant?: ProductVariantDto;
+  store?: Pick<StoreDto, 'id' | 'name' | 'slug'>;
+}
+
+export interface UpdateSellerInventoryRequestDto {
+  onHand?: number;
+  reserved?: number;
+  safetyStock?: number;
+}
+
+export interface CreatePaymentRequestDto {
+  orderId: string;
+}
+
+export interface CreatePaymentResponseDto {
+  payment: PaymentDto;
+  razorpayKeyId?: string | null;
+}
+
+export interface VerifyPaymentRequestDto {
+  paymentId: string;
+  providerRef?: string;
+  signature?: string;
+}
+
+export interface ProductSearchQuery extends ListProductsQuery {
+  q?: string;
+  category?: string;
+  brand?: string;
+  seller?: string;
+  minPriceCents?: number;
+  maxPriceCents?: number;
+}
+
+export interface AnalyticsRevenueDto {
+  revenueCents: number;
+  orderCount: number;
+  paidPaymentCount: number;
+  returnCount: number;
+}
+
+export interface ReturnDto {
+  id: string;
+  orderId: string;
+  reason: string;
+  status: string;
+  createdAt?: string;
+  updatedAt?: string;
+  order?: OrderDto;
+}
+
+export interface CreateReturnRequestDto {
+  orderId: string;
+  type: 'RETURN' | 'EXCHANGE';
+  reason: string;
+}
+
 export interface ListProductsQuery {
   page?: number;
   limit?: number;

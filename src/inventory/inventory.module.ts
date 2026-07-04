@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '@database/database.module';
-import { InventoryController } from './inventory.controller';
+import { InventoryController, SellerInventoryController } from './inventory.controller';
 import { InventoryReservationService } from './inventory-reservation.service';
 
 @Module({
   imports: [DatabaseModule],
-  controllers: [InventoryController],
+  controllers: [InventoryController, SellerInventoryController],
   providers: [InventoryReservationService],
   exports: [InventoryReservationService],
 })

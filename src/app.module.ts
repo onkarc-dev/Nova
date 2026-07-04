@@ -21,6 +21,14 @@ import { CartModule } from '@/cart/cart.module';
 import { CheckoutModule } from '@/checkout/checkout.module';
 import { OrdersModule } from '@/orders/orders.module';
 import { WishlistModule } from '@/wishlist/wishlist.module';
+import { InventoryModule } from '@/inventory/inventory.module';
+import { PaymentsModule } from '@/payments/payments.module';
+import { SellerProductsModule } from '@/seller-products/seller-products.module';
+import { AdminProductsModule } from '@/admin-products/admin-products.module';
+import { SearchModule } from '@/search/search.module';
+import { AnalyticsModule } from '@/analytics/analytics.module';
+import { ReturnsModule } from '@/returns/returns.module';
+import { EmailModule } from '@/email/email.module';
 
 @Module({
   imports: [
@@ -36,9 +44,17 @@ import { WishlistModule } from '@/wishlist/wishlist.module';
     UsersModule,
     SellersModule,
     WishlistModule,
+    InventoryModule,
     CartModule,
     CheckoutModule,
     OrdersModule,
+    PaymentsModule,
+    SellerProductsModule,
+    AdminProductsModule,
+    SearchModule,
+    AnalyticsModule,
+    ReturnsModule,
+    EmailModule,
     HealthModule,
   ],
 })
