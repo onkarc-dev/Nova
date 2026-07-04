@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { Prisma, ProductStatus, SellerStatus } from '@prisma/client';
 import type { AuthUser } from '@/auth/interfaces/auth-user.interface';
 import { PrismaService } from '@database/prisma.service';
-import type { CreateSellerProductDto, UpdateSellerProductDto } from './dto/seller-product.dto';
+import type { CreateSellerProductDto, SellerProductVariantDto, UpdateSellerProductDto } from './dto/seller-product.dto';
 
 @Injectable()
 export class SellerProductsService {
@@ -67,8 +67,7 @@ export class SellerProductsService {
       return await this.prisma.runInTransaction(async (tx) => {
         await tx.product.update({ where: { id: product.id }, data: this.toProductUpdate(dto) });
         if (dto.variants) {
-          await tx.variant.deleteMany({ where: { productId: product.id } });
-          await tx.variant.createMany({ data: dto.variants.map((variant) => ({ productId: product.id, ...this.toVariantCreate(variant) })) });
+          await this.syncVariants(tx, product.id, dto.variants);
         }
         if (dto.images) {
           await tx.productImage.deleteMany({ where: { productId: product.id } });
@@ -93,6 +92,63 @@ export class SellerProductsService {
     });
     if (!product) throw new NotFoundException('Product not found.');
     return this.prisma.product.update({ where: { id: product.id }, data: { status: ProductStatus.ARCHIVED }, include: this.includeProduct() });
+  }
+
+  private async syncVariants(tx: Prisma.TransactionClient, productId: string, variants: SellerProductVariantDto[]) {
+    if (!variants.length) throw new BadRequestException('At least one product variant is required.');
+    this.assertUniqueVariantPayload(variants);
+
+    const existingVariants = await tx.variant.findMany({
+      where: { productId },
+      select: { id: true, sku: true },
+    });
+    const existingById = new Map(existingVariants.map((variant) => [variant.id, variant]));
+    const existingBySku = new Map(existingVariants.map((variant) => [variant.sku, variant]));
+    const touchedIds = new Set<string>();
+
+    for (const variant of variants) {
+      const matched = variant.id ? existingById.get(variant.id) : existingBySku.get(variant.sku);
+      if (variant.id && !matched) throw new BadRequestException(`Variant ${variant.id} does not belong to this product.`);
+      if (matched) {
+        touchedIds.add(matched.id);
+        await tx.variant.update({ where: { id: matched.id }, data: this.toVariantUpdate(variant) });
+        continue;
+      }
+      await tx.variant.create({ data: { productId, ...this.toVariantCreate(variant) } });
+    }
+
+    const variantsToDeactivate = existingVariants.filter((variant) => !touchedIds.has(variant.id));
+    if (variantsToDeactivate.length) {
+      await tx.variant.updateMany({
+        where: { productId, id: { in: variantsToDeactivate.map((variant) => variant.id) } },
+        data: { isActive: false },
+      });
+    }
+  }
+
+  private assertUniqueVariantPayload(variants: SellerProductVariantDto[]) {
+    const ids = new Set<string>();
+    const skus = new Set<string>();
+    for (const variant of variants) {
+      if (variant.id) {
+        if (ids.has(variant.id)) throw new BadRequestException(`Duplicate variant id ${variant.id} in update payload.`);
+        ids.add(variant.id);
+      }
+      if (skus.has(variant.sku)) throw new BadRequestException(`Duplicate SKU ${variant.sku} in update payload.`);
+      skus.add(variant.sku);
+    }
+  }
+
+  private toVariantUpdate(variant: SellerProductVariantDto): Prisma.VariantUpdateInput {
+    return {
+      sku: variant.sku,
+      name: variant.name,
+      attributes: variant.attributes ?? {},
+      priceCents: variant.priceCents,
+      compareAtCents: variant.compareAtCents ?? null,
+      currency: variant.currency ?? 'INR',
+      isActive: variant.isActive ?? true,
+    };
   }
 
   private toProductUpdate(dto: UpdateSellerProductDto): Prisma.ProductUpdateInput {
