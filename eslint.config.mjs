@@ -32,4 +32,11 @@ export default tseslint.config(
       '@typescript-eslint/no-extraneous-class': ['error', { allowWithDecorator: true }],
     },
   },
+  {
+    files: ['src/**/*.spec.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-definitions': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+    },
+  },
 );
