@@ -137,6 +137,30 @@ enum SellerStatus {
   SUSPENDED
 }
 
+enum ShipmentProvider {
+  MANUAL
+  SHIPROCKET
+  DELHIVERY
+  PORTER
+  LOCAL_COURIER
+}
+
+enum ShipmentStatus {
+  PENDING
+  PACKED
+  READY_TO_SHIP
+  SHIPPED
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED_DELIVERY
+  CANCELLED
+  RETURN_PICKUP_REQUESTED
+  RETURN_PICKED_UP
+  RETURN_IN_TRANSIT
+  RETURN_DELIVERED
+}
+
 model User {
   id              String           @id @default(cuid())
   email           String           @unique
@@ -290,6 +314,7 @@ model Seller {
   user           User         @relation(fields: [userId], references: [id], onDelete: Restrict)
   stores         Store[]
   orderItems     OrderItem[]
+  shipments      Shipment[]
 
   @@index([status])
   @@index([businessName])
@@ -317,6 +342,7 @@ model Store {
   products    Product[]
   inventory   Inventory[]
   orderItems  OrderItem[]
+  shipments   Shipment[]
 
   @@index([sellerId, isVerified])
   @@index([city, state])
@@ -491,6 +517,7 @@ model Order {
   invoice           Invoice?
   returns           Return[]
   refunds           Refund[]
+  shipments         Shipment[]
 
   @@index([userId, status])
 }
@@ -546,6 +573,7 @@ model Payment {
   transactions      Transaction[]
   refunds           Refund[]
   auditEvents       PaymentAuditEvent[]
+  shipments         Shipment[]
 
   @@index([provider, providerOrderId])
   @@index([providerPaymentId])
@@ -804,4 +832,51 @@ model SupportTicket {
   updatedAt   DateTime     @updatedAt
   user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   assignee    User?        @relation("TicketAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+}
+
+model Shipment {
+  id                  String           @id @default(cuid())
+  orderId             String
+  sellerId            String
+  storeId             String
+  provider            ShipmentProvider @default(MANUAL)
+  status              ShipmentStatus   @default(PENDING)
+  courierName         String?
+  trackingNumber      String?
+  trackingUrl         String?
+  estimatedDeliveryAt DateTime?
+  shippedAt           DateTime?
+  deliveredAt         DateTime?
+  failedAt            DateTime?
+  cancelledAt         DateTime?
+  metadata            Json?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  order               Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  seller              Seller           @relation(fields: [sellerId], references: [id], onDelete: Restrict)
+  store               Store            @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  events              ShipmentEvent[]
+  payment             Payment?         @relation(fields: [paymentId], references: [id])
+  paymentId           String?
+
+  @@unique([orderId, sellerId, storeId])
+  @@index([sellerId, status])
+  @@index([storeId, status])
+  @@index([orderId])
+}
+
+model ShipmentEvent {
+  id              String         @id @default(cuid())
+  shipmentId      String
+  status          ShipmentStatus
+  message         String
+  location        String?
+  occurredAt      DateTime       @default(now())
+  providerEventId String?
+  metadata        Json?
+  createdAt       DateTime       @default(now())
+  shipment        Shipment       @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@unique([shipmentId, status, occurredAt, providerEventId])
+  @@index([shipmentId, occurredAt])
 }

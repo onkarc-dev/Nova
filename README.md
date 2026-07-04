@@ -252,3 +252,11 @@ The shared compose file defines PostgreSQL, Redis, persistent volumes, an isolat
 - Create local migrations with `npm run db:migrate:dev`.
 - Apply production migrations with `npm run db:migrate:deploy`.
 - Seed infrastructure RBAC data with `npm run db:seed`.
+
+### Phase 4 Delivery & Shipment Engine
+
+Nova now includes a production-safe shipment foundation for paid marketplace orders. Captured payments create per seller/store shipment placeholders with the manual provider, a default MVP ETA, and an initial tracking event. Seller, admin, and customer tracking APIs enforce ownership and a backend shipment state machine.
+
+Shipment lifecycle: `PENDING -> PACKED -> READY_TO_SHIP -> SHIPPED -> IN_TRANSIT -> OUT_FOR_DELIVERY -> DELIVERED`, with supported failure/cancel and return-preparation statuses: `FAILED_DELIVERY`, `CANCELLED`, `RETURN_PICKUP_REQUESTED`, `RETURN_PICKED_UP`, `RETURN_IN_TRANSIT`, `RETURN_DELIVERED`.
+
+Manual provider is the default. Future providers can implement the delivery provider contract for Shiprocket, Delhivery, Porter, or local courier APIs without changing API controllers.

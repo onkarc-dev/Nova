@@ -29,6 +29,7 @@ import { SearchModule } from '@/search/search.module';
 import { AnalyticsModule } from '@/analytics/analytics.module';
 import { ReturnsModule } from '@/returns/returns.module';
 import { EmailModule } from '@/email/email.module';
+import { ShipmentsModule } from '@/shipments/shipments.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { EmailModule } from '@/email/email.module';
     SearchModule,
     AnalyticsModule,
     ReturnsModule,
+    ShipmentsModule,
     EmailModule,
     HealthModule,
   ],

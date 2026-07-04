@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { InventoryModule } from '@/inventory/inventory.module';
+import { ShipmentsModule } from '@/shipments/shipments.module';
 import { ManualPendingProvider } from './manual-pending.provider';
 import { NullPaymentProvider } from './null-payment.provider';
 import { AdminPaymentsController, PaymentsController } from './payments.controller';
@@ -7,7 +8,7 @@ import { PaymentService } from './payment.service';
 import { RazorpayProvider } from './razorpay.provider';
 
 @Module({
-  imports: [InventoryModule],
+  imports: [InventoryModule, ShipmentsModule],
   controllers: [PaymentsController, AdminPaymentsController],
   providers: [ManualPendingProvider, NullPaymentProvider, RazorpayProvider, PaymentService],
   exports: [PaymentService],

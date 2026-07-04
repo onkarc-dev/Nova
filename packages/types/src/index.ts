@@ -339,6 +339,70 @@ export interface OrderDto {
   payments?: PaymentDto[];
 }
 
+
+export type ShipmentProvider = 'MANUAL' | 'SHIPROCKET' | 'DELHIVERY' | 'PORTER' | 'LOCAL_COURIER';
+
+export type ShipmentStatus =
+  | 'PENDING'
+  | 'PACKED'
+  | 'READY_TO_SHIP'
+  | 'SHIPPED'
+  | 'IN_TRANSIT'
+  | 'OUT_FOR_DELIVERY'
+  | 'DELIVERED'
+  | 'FAILED_DELIVERY'
+  | 'CANCELLED'
+  | 'RETURN_PICKUP_REQUESTED'
+  | 'RETURN_PICKED_UP'
+  | 'RETURN_IN_TRANSIT'
+  | 'RETURN_DELIVERED';
+
+export interface ShipmentEventDto {
+  id?: string;
+  shipmentId?: string;
+  status: ShipmentStatus;
+  message: string;
+  location?: string | null;
+  occurredAt: string;
+  createdAt?: string;
+}
+
+export interface ShipmentDto {
+  id: string;
+  orderId: string;
+  sellerId: string;
+  storeId: string;
+  provider: ShipmentProvider;
+  status: ShipmentStatus;
+  courierName?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+  estimatedDeliveryAt?: string | null;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
+  failedAt?: string | null;
+  cancelledAt?: string | null;
+  events?: ShipmentEventDto[];
+}
+
+export interface ShipmentTrackingDto extends Pick<ShipmentDto, 'id' | 'orderId' | 'status' | 'courierName' | 'trackingNumber' | 'trackingUrl' | 'estimatedDeliveryAt' | 'deliveredAt'> {
+  events: ShipmentEventDto[];
+}
+
+export interface UpdateShipmentStatusRequestDto {
+  status: ShipmentStatus;
+  message?: string;
+  location?: string;
+  occurredAt?: string;
+}
+
+export interface UpdateShipmentTrackingRequestDto {
+  courierName?: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  estimatedDeliveryAt?: string;
+}
+
 export interface CheckoutDraftDto {
   cart: CartDto;
   addresses: AddressDto[];

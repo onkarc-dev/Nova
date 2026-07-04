@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { OrderStatus, PaymentEventType, PaymentProvider, PaymentStatus, Prisma, RefundStatus, WebhookEventStatus } from '@prisma/client';
 import type { AuthUser } from '@/auth/interfaces/auth-user.interface';
 import { InventoryReservationService } from '@/inventory/inventory-reservation.service';
+import { ShipmentsService } from '@/shipments/shipments.service';
 import { PrismaService } from '@database/prisma.service';
 import { ManualPendingProvider } from './manual-pending.provider';
 import type { CreatePendingPaymentInput, PaymentProviderAdapter } from './payment-provider.interface';
@@ -24,6 +25,7 @@ export class PaymentService {
     private readonly manualProvider: ManualPendingProvider,
     private readonly razorpayProvider: RazorpayProvider,
     private readonly inventoryReservationService: InventoryReservationService,
+    private readonly shipmentsService: ShipmentsService,
   ) {}
 
   async createPendingPayment(tx: Prisma.TransactionClient, input: CreatePendingPaymentInput) {
@@ -349,6 +351,7 @@ export class PaymentService {
     await tx.order.update({ where: { id: payment.orderId }, data: { status: OrderStatus.CONFIRMED } });
     await this.inventoryReservationService.deductOrderItems(tx, payment.orderId);
     await this.recordAudit(tx, payment.id, PaymentEventType.CAPTURED, 'Payment captured and inventory deducted.', { providerPaymentId });
+    await this.shipmentsService.createShipmentPlaceholders(tx, payment.orderId);
     return updated;
   }
 
