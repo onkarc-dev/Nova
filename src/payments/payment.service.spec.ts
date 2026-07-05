@@ -84,6 +84,7 @@ describe('PaymentService', () => {
     };
     const shipmentsService = { createShipmentPlaceholders: jest.fn().mockResolvedValue([]) };
     const notificationsService = { createFromEventTx: jest.fn().mockResolvedValue([]) };
+    const financeService = { createCommissionsForPaymentTx: jest.fn().mockResolvedValue({ created: 1, skipped: false }) };
     const service = new PaymentService(
       prisma as unknown as PrismaService,
       new ManualPendingProvider(),
@@ -91,8 +92,9 @@ describe('PaymentService', () => {
       inventoryReservationService as unknown as InventoryReservationService,
       shipmentsService as unknown as ShipmentsService,
       notificationsService as unknown as NotificationsService,
+      financeService as unknown as ConstructorParameters<typeof PaymentService>[6],
     );
-    return { inventoryReservationService, payment, prisma, razorpayProvider, service, tx };
+    return { financeService, inventoryReservationService, payment, prisma, razorpayProvider, service, tx };
   }
 
   it('uses the manual provider fallback when Razorpay is not configured', async () => {

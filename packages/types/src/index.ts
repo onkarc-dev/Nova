@@ -403,6 +403,117 @@ export interface UpdateShipmentTrackingRequestDto {
   estimatedDeliveryAt?: string;
 }
 
+export type CommissionStatus = 'PENDING' | 'LOCKED' | 'SETTLED' | 'REVERSED';
+export type SettlementStatus = 'PENDING' | 'PROCESSING' | 'PAID' | 'FAILED' | 'CANCELLED';
+
+export interface SellerOrderQueryDto {
+  page?: number;
+  limit?: number;
+  status?: OrderStatus;
+  paymentStatus?: PaymentStatus;
+  shipmentStatus?: ShipmentStatus;
+  from?: string;
+  to?: string;
+  search?: string;
+  sort?: 'newest' | 'oldest' | 'revenue_desc' | 'revenue_asc';
+}
+
+export interface SellerOrderDetailDto extends OrderDto {
+  sellerSummary?: { grossAmountCents: number; commissionAmountCents: number; itemCount: number };
+  shipments?: ShipmentDto[];
+  returns?: ReturnDto[];
+  timeline?: Array<{ type: string; entityId: string; at: string; label: string }>;
+}
+
+export interface SellerOrderSummaryDto {
+  grossSalesCents: number;
+  commissionCents: number;
+  netSalesCents: number;
+  orderItemCount: number;
+  orderCount: number;
+}
+
+export interface CommissionRecordDto {
+  id: string;
+  sellerId: string;
+  storeId: string;
+  orderId: string;
+  orderItemId: string;
+  paymentId: string;
+  settlementId?: string | null;
+  grossAmountCents: number;
+  commissionRateBps: number;
+  commissionAmountCents: number;
+  netAmountCents: number;
+  currency: string;
+  status: CommissionStatus;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SellerSettlementDto {
+  id: string;
+  sellerId: string;
+  storeId: string;
+  settlementNumber: string;
+  grossAmountCents: number;
+  commissionAmountCents: number;
+  refundAdjustmentCents: number;
+  netPayoutCents: number;
+  currency: string;
+  status: SettlementStatus;
+  periodStart: string;
+  periodEnd: string;
+  paidAt?: string | null;
+  failedAt?: string | null;
+  commissions?: CommissionRecordDto[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface SellerRevenueDto {
+  grossSalesCents: number;
+  commissionCents: number;
+  refundsCents: number;
+  netEarningsCents: number;
+  pendingPayoutCents: number;
+  paidPayoutCents: number;
+  orderCount: number;
+  topProducts: Array<{ productId?: string; name?: string; grossSalesCents: number; commissionRecordCount: number }>;
+}
+
+export interface SellerPayoutSummaryDto {
+  pendingPayoutCents: number;
+  processingPayoutCents: number;
+  paidPayoutCents: number;
+  failedPayoutCents: number;
+  counts: Record<'pending' | 'processing' | 'paid' | 'failed', number>;
+}
+
+export interface FinancePeriodQueryDto {
+  from?: string;
+  to?: string;
+}
+
+export interface CommissionQueryDto extends FinancePeriodQueryDto {
+  status?: CommissionStatus;
+  sellerId?: string;
+  storeId?: string;
+}
+
+export interface SettlementQueryDto extends FinancePeriodQueryDto {
+  status?: SettlementStatus;
+  sellerId?: string;
+  storeId?: string;
+}
+
+export interface GenerateSettlementsRequestDto {
+  periodStart: string;
+  periodEnd: string;
+  sellerId?: string;
+  storeId?: string;
+}
+
 export interface CheckoutDraftDto {
   cart: CartDto;
   addresses: AddressDto[];

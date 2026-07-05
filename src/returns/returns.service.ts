@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { NotificationType, OrderStatus, PaymentStatus, RefundStatus } from '@prisma/client';
 import type { AuthUser } from '@/auth/interfaces/auth-user.interface';
 import { NotificationsService } from '@/notifications/notifications.service';
+import { FinanceService } from '@/finance/finance.service';
 import { PrismaService } from '@database/prisma.service';
 import type { CreateReturnDto, RejectReturnDto } from './dto/return.dto';
 
@@ -10,6 +11,7 @@ export class ReturnsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly financeService: FinanceService,
   ) {}
 
   async create(user: AuthUser, dto: CreateReturnDto) {
@@ -90,6 +92,7 @@ export class ReturnsService {
         template: { orderNumber: item.order.orderNumber, returnId: item.id },
         metadata: { returnId: item.id, orderId: item.orderId },
       });
+      await this.financeService.reverseCommissionsForReturnTx(tx, item.id);
       return updated;
     });
   }

@@ -37,6 +37,7 @@ export const environmentSchema = z.object({
   STORAGE_PROVIDER: z.enum(['s3', 'cloudinary', 'local']).default('local'),
   STORAGE_BUCKET: z.string().optional(),
   CLOUDINARY_URL: z.string().optional(),
+  PLATFORM_DEFAULT_COMMISSION_BPS: z.coerce.number().int().min(0).max(10000).default(1000),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 });
 

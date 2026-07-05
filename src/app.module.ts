@@ -31,6 +31,8 @@ import { ReturnsModule } from '@/returns/returns.module';
 import { EmailModule } from '@/email/email.module';
 import { ShipmentsModule } from '@/shipments/shipments.module';
 import { NotificationsModule } from '@/notifications/notifications.module';
+import { FinanceModule } from '@/finance/finance.module';
+import { SellerPlatformModule } from '@/seller-platform/seller-platform.module';
 
 @Module({
   imports: [
@@ -58,6 +60,8 @@ import { NotificationsModule } from '@/notifications/notifications.module';
     ReturnsModule,
     ShipmentsModule,
     NotificationsModule,
+    FinanceModule,
+    SellerPlatformModule,
     EmailModule,
     HealthModule,
   ],
