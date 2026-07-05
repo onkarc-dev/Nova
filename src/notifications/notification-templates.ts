@@ -40,6 +40,10 @@ export class NotificationTemplateService {
       SELLER_NEW_ORDER: { title: `New order${order}`, body: 'A paid order needs seller fulfillment.', priority: NotificationPriority.HIGH },
       SELLER_PRODUCT_APPROVED: { title: 'Product approved', body: `${input.productName ?? 'Your product'} is now approved.`, priority: NotificationPriority.NORMAL },
       SELLER_PRODUCT_REJECTED: { title: 'Product needs changes', body: `${input.productName ?? 'Your product'} was not approved.`, priority: NotificationPriority.NORMAL },
+      SELLER_SETTLEMENT_GENERATED: { title: 'Settlement generated', body: 'A seller settlement is ready for review.', priority: NotificationPriority.NORMAL },
+      SELLER_SETTLEMENT_PAID: { title: 'Settlement paid', body: 'A seller settlement was marked paid.', priority: NotificationPriority.HIGH },
+      SELLER_SETTLEMENT_FAILED: { title: 'Settlement failed', body: 'A seller settlement needs attention.', priority: NotificationPriority.HIGH },
+      SELLER_COMMISSION_REVERSED: { title: 'Commission reversed', body: 'A commission was reversed after a refund or return.', priority: NotificationPriority.HIGH },
       ADMIN_PAYMENT_FAILED: { title: 'Payment failure alert', body: `Payment ${input.paymentId ?? ''} failed and may need review.`, priority: NotificationPriority.CRITICAL },
       ADMIN_REFUND_ALERT: { title: 'Refund alert', body: `Refund ${input.returnId ?? input.paymentId ?? ''} needs review.`, priority: NotificationPriority.CRITICAL },
     };

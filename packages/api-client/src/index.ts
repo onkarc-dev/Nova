@@ -8,11 +8,15 @@ import type {
   CheckoutDraftDto,
   CheckoutValidationDto,
   CheckoutValidationRequestDto,
+  CommissionQueryDto,
+  CommissionRecordDto,
   CreatePaymentRequestDto,
   CreatePaymentResponseDto,
   CreateOrderRequestDto,
   CreateReturnRequestDto,
   CreateSellerProductRequestDto,
+  FinancePeriodQueryDto,
+  GenerateSettlementsRequestDto,
   ExpirePaymentsResponseDto,
   AnalyticsRevenueDto,
   InventoryValidationDto,
@@ -40,6 +44,14 @@ import type {
   ReturnDto,
   SellerDto,
   SellerInventoryDto,
+  SellerOrderDetailDto,
+  SellerOrderQueryDto,
+  SellerOrderSummaryDto,
+  SellerPayoutSummaryDto,
+  SellerRevenueDto,
+  SellerSettlementDto,
+  SettlementQueryDto,
+  SettlementStatus,
   ShipmentDto,
   ShipmentTrackingDto,
   UpdateSellerInventoryRequestDto,
@@ -280,6 +292,31 @@ export function createApiClient(options: ApiClientOptions = {}) {
           request<AnalyticsRevenueDto>('/api/v1/seller/analytics/revenue', { ...options, method: 'GET' }),
         products: (options?: RequestOptions) => request<unknown[]>('/api/v1/seller/analytics/products', { ...options, method: 'GET' }),
       },
+      orders: {
+        list: (query?: SellerOrderQueryDto, options?: RequestOptions) =>
+          request<PaginatedResult<SellerOrderDetailDto>>(withQuery('/api/v1/seller/orders', query), { ...options, method: 'GET' }),
+        summary: (query?: SellerOrderQueryDto, options?: RequestOptions) =>
+          request<SellerOrderSummaryDto>(withQuery('/api/v1/seller/orders/summary', query), { ...options, method: 'GET' }),
+        get: (orderId: string, options?: RequestOptions) =>
+          request<SellerOrderDetailDto>(`/api/v1/seller/orders/${encodeURIComponent(orderId)}`, { ...options, method: 'GET' }),
+        markPacked: (orderId: string, options?: RequestOptions) =>
+          request<ShipmentDto>(`/api/v1/seller/orders/${encodeURIComponent(orderId)}/packed`, { ...options, method: 'PATCH' }),
+        markReadyToShip: (orderId: string, options?: RequestOptions) =>
+          request<ShipmentDto>(`/api/v1/seller/orders/${encodeURIComponent(orderId)}/ready-to-ship`, { ...options, method: 'PATCH' }),
+        updateTracking: (orderId: string, body: UpdateShipmentTrackingRequestDto, options?: RequestOptions) =>
+          request<ShipmentDto>(`/api/v1/seller/orders/${encodeURIComponent(orderId)}/tracking`, { ...options, method: 'PATCH', body }),
+      },
+      finance: {
+        revenue: (query?: FinancePeriodQueryDto, options?: RequestOptions) =>
+          request<SellerRevenueDto>(withQuery('/api/v1/seller/revenue', query), { ...options, method: 'GET' }),
+        commissions: (query?: CommissionQueryDto, options?: RequestOptions) =>
+          request<CommissionRecordDto[]>(withQuery('/api/v1/seller/commissions', query), { ...options, method: 'GET' }),
+        payoutSummary: (options?: RequestOptions) => request<SellerPayoutSummaryDto>('/api/v1/seller/payout-summary', { ...options, method: 'GET' }),
+        settlements: (query?: SettlementQueryDto, options?: RequestOptions) =>
+          request<SellerSettlementDto[]>(withQuery('/api/v1/seller/settlements', query), { ...options, method: 'GET' }),
+        settlement: (settlementId: string, options?: RequestOptions) =>
+          request<SellerSettlementDto>(`/api/v1/seller/settlements/${encodeURIComponent(settlementId)}`, { ...options, method: 'GET' }),
+      },
     },
     admin: {
       sellers: {
@@ -309,6 +346,26 @@ export function createApiClient(options: ApiClientOptions = {}) {
           request<AnalyticsRevenueDto>('/api/v1/admin/analytics/revenue', { ...options, method: 'GET' }),
         categories: (options?: RequestOptions) => request<unknown[]>('/api/v1/admin/analytics/categories', { ...options, method: 'GET' }),
         products: (options?: RequestOptions) => request<unknown[]>('/api/v1/admin/analytics/products', { ...options, method: 'GET' }),
+      },
+      finance: {
+        commissions: (query?: CommissionQueryDto, options?: RequestOptions) =>
+          request<CommissionRecordDto[]>(withQuery('/api/v1/admin/commissions', query), { ...options, method: 'GET' }),
+        settlements: (query?: SettlementQueryDto, options?: RequestOptions) =>
+          request<SellerSettlementDto[]>(withQuery('/api/v1/admin/settlements', query), { ...options, method: 'GET' }),
+        settlement: (settlementId: string, options?: RequestOptions) =>
+          request<SellerSettlementDto>(`/api/v1/admin/settlements/${encodeURIComponent(settlementId)}`, { ...options, method: 'GET' }),
+        generateSettlements: (body: GenerateSettlementsRequestDto, options?: RequestOptions) =>
+          request<SellerSettlementDto[]>('/api/v1/admin/settlements/generate', { ...options, method: 'POST', body }),
+        updateSettlementStatus: (settlementId: string, status: SettlementStatus, options?: RequestOptions) =>
+          request<SellerSettlementDto>(`/api/v1/admin/settlements/${encodeURIComponent(settlementId)}/status`, {
+            ...options,
+            method: 'PATCH',
+            body: { status },
+          }),
+        overview: (query?: FinancePeriodQueryDto, options?: RequestOptions) =>
+          request<SellerRevenueDto>(withQuery('/api/v1/admin/finance/overview', query), { ...options, method: 'GET' }),
+        sellerEarnings: (query?: FinancePeriodQueryDto, options?: RequestOptions) =>
+          request<unknown[]>(withQuery('/api/v1/admin/seller-earnings', query), { ...options, method: 'GET' }),
       },
       search: {
         reindex: (options?: RequestOptions) => request<SearchReindexResponseDto>('/api/v1/admin/search/reindex', { ...options, method: 'POST' }),

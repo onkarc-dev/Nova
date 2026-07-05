@@ -4,6 +4,7 @@ import type { AuthUser } from '@/auth/interfaces/auth-user.interface';
 import { InventoryReservationService } from '@/inventory/inventory-reservation.service';
 import { NotificationsService } from '@/notifications/notifications.service';
 import { ShipmentsService } from '@/shipments/shipments.service';
+import { FinanceService } from '@/finance/finance.service';
 import { PrismaService } from '@database/prisma.service';
 import { ManualPendingProvider } from './manual-pending.provider';
 import type { CreatePendingPaymentInput, PaymentProviderAdapter } from './payment-provider.interface';
@@ -28,6 +29,7 @@ export class PaymentService {
     private readonly inventoryReservationService: InventoryReservationService,
     private readonly shipmentsService: ShipmentsService,
     private readonly notificationsService: NotificationsService,
+    private readonly financeService: FinanceService,
   ) {}
 
   async createPendingPayment(tx: Prisma.TransactionClient, input: CreatePendingPaymentInput) {
@@ -358,6 +360,7 @@ export class PaymentService {
     await tx.order.update({ where: { id: payment.orderId }, data: { status: OrderStatus.CONFIRMED } });
     await this.inventoryReservationService.deductOrderItems(tx, payment.orderId);
     await this.recordAudit(tx, payment.id, PaymentEventType.CAPTURED, 'Payment captured and inventory deducted.', { providerPaymentId });
+    await this.financeService.createCommissionsForPaymentTx(tx, payment.id);
     await this.shipmentsService.createShipmentPlaceholders(tx, payment.orderId);
     await this.createPaymentCapturedNotifications(tx, payment.id);
     return updated;
