@@ -167,14 +167,18 @@ describe('AdminAnalyticsService', () => {
   });
 
   describe('categories', () => {
-    it('aggregates category and brand revenue from grouped order items', async () => {
-      prisma.orderItem.groupBy.mockResolvedValue([
-        { productId: 'p1', _sum: { totalCents: 1000, quantity: 2 } },
-        { productId: 'p2', _sum: { totalCents: 500, quantity: 1 } },
-      ]);
-      prisma.product.findMany.mockResolvedValue([
-        { id: 'p1', category: { id: 'cat1', name: 'Electronics' }, brand: { id: 'b1', name: 'Acme' } },
-        { id: 'p2', category: { id: 'cat1', name: 'Electronics' }, brand: { id: 'b2', name: 'Globex' } },
+    it('aggregates category and brand revenue from projected order items', async () => {
+      prisma.orderItem.findMany.mockResolvedValue([
+        {
+          totalCents: 1000,
+          quantity: 2,
+          product: { category: { id: 'cat1', name: 'Electronics' }, brand: { id: 'b1', name: 'Acme' } },
+        },
+        {
+          totalCents: 500,
+          quantity: 1,
+          product: { category: { id: 'cat1', name: 'Electronics' }, brand: { id: 'b2', name: 'Globex' } },
+        },
       ]);
 
       const result = await service.categories({});
