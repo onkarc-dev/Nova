@@ -221,58 +221,52 @@ export abstract class BaseAnalyticsQueryService {
 
   /**
    * Category and brand revenue breakdown. OrderItem does not carry categoryId/brandId
-   * directly, so this groups by productId at the DB (bounded, indexed) then reduces to
-   * category/brand totals in memory with a single hash-map pass — O(distinct products).
+   * directly, so this uses a bounded order-item projection and reduces to category/brand
+   * totals in memory with a single hash-map pass — O(sampled order items). This avoids
+   * Prisma groupBy generic issues while staying production-safe for the MVP analytics window.
    */
   protected async categoryBrandBreakdown(
     where: Prisma.OrderItemWhereInput,
   ): Promise<{ categories: TopEntry[]; brands: TopEntry[] }> {
-    const rows = await this.prisma.orderItem.groupBy({
-      by: ['productId'],
+    const orderItems = await this.prisma.orderItem.findMany({
       where,
-      _sum: { totalCents: true, quantity: true },
-      orderBy: { _sum: { totalCents: 'desc' } },
-      take: 500,
+      select: {
+        totalCents: true,
+        quantity: true,
+        product: {
+          select: {
+            category: { select: { id: true, name: true } },
+            brand: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { totalCents: 'desc' },
+      take: 5000,
     });
-    if (rows.length === 0) return { categories: [], brands: [] };
-
-    interface ProductCategoryBrandRow {
-      id: string;
-      category: { id: string; name: string } | null;
-      brand: { id: string; name: string } | null;
-    }
-    const products: ProductCategoryBrandRow[] = await this.prisma.product.findMany({
-      where: { id: { in: rows.map((row) => row.productId) } },
-      select: { id: true, category: { select: { id: true, name: true } }, brand: { select: { id: true, name: true } } },
-    });
-    const productById = new Map(products.map((product) => [product.id, product]));
+    if (orderItems.length === 0) return { categories: [], brands: [] };
 
     const categoryTotals = new Map<string, TopEntry>();
     const brandTotals = new Map<string, TopEntry>();
-    for (const row of rows) {
-      const product = productById.get(row.productId);
-      const revenueCents = row._sum.totalCents ?? 0;
-      const quantity = row._sum.quantity ?? 0;
-
-      const category = product?.category;
+    for (const item of orderItems) {
+      const category = item.product.category;
       if (category) {
         const existing = categoryTotals.get(category.id);
         categoryTotals.set(category.id, {
           id: category.id,
           label: category.name,
-          revenueCents: (existing?.revenueCents ?? 0) + revenueCents,
-          quantity: (existing?.quantity ?? 0) + quantity,
+          revenueCents: (existing?.revenueCents ?? 0) + item.totalCents,
+          quantity: (existing?.quantity ?? 0) + item.quantity,
         });
       }
 
-      const brand = product?.brand;
+      const brand = item.product.brand;
       if (brand) {
         const existing = brandTotals.get(brand.id);
         brandTotals.set(brand.id, {
           id: brand.id,
           label: brand.name,
-          revenueCents: (existing?.revenueCents ?? 0) + revenueCents,
-          quantity: (existing?.quantity ?? 0) + quantity,
+          revenueCents: (existing?.revenueCents ?? 0) + item.totalCents,
+          quantity: (existing?.quantity ?? 0) + item.quantity,
         });
       }
     }
