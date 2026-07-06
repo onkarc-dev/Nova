@@ -235,6 +235,7 @@ export abstract class BaseAnalyticsQueryService {
       by: ['productId'],
       where,
       _sum: { totalCents: true, quantity: true },
+      orderBy: { _sum: { totalCents: 'desc' } },
       take: 500,
     });
     if (rows.length === 0) return { categories: [], brands: [] };
