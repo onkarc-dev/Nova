@@ -3,18 +3,37 @@ import { SellerAnalyticsService } from './seller-analytics.service';
 import { AnalyticsAggregationService } from './analytics-aggregation.service';
 import type { AuthUser } from '@/auth/interfaces/auth-user.interface';
 
+type SellerFindUniqueResult = { id: string } | null;
+type StoreFindManyResult = { id: string }[];
+type OrderItemAggregateResult = { _sum: { totalCents: number; commissionAmountCents: number } };
+type RefundAggregateResult = { _sum: { amountCents: number } };
+type OrderItemGroupByResult = { productId: string; _sum: { totalCents: number; quantity: number } }[];
+type ProductFindManyResult = { id: string; name: string }[];
+
+type SellerFindUniqueArgs = { where: { userId: string }; select: { id: true } };
+type StoreFindManyArgs = { where?: { sellerId?: string }; select?: { id: true } };
+type OrderCountArgs = { where: { items?: { some?: { sellerId?: string } } } };
+type OrderItemAggregateArgs = { where: { sellerId?: string } };
+type OrderItemGroupByArgs = { where: { sellerId?: string } };
+type InventoryFindManyArgs = { where: { storeId: { in: string[] } } };
+type SellerSettlementFindManyArgs = { where: { sellerId?: string } };
+
 function buildPrismaMock() {
   return {
-    seller: { findUnique: jest.fn() },
-    store: { findMany: jest.fn() },
-    order: { count: jest.fn(), groupBy: jest.fn() },
-    orderItem: { groupBy: jest.fn(), findMany: jest.fn(), aggregate: jest.fn() },
-    product: { findMany: jest.fn(), count: jest.fn() },
-    refund: { count: jest.fn(), aggregate: jest.fn(), findMany: jest.fn() },
-    return: { count: jest.fn(), groupBy: jest.fn() },
-    shipment: { groupBy: jest.fn(), findMany: jest.fn(), count: jest.fn() },
-    inventory: { findMany: jest.fn() },
-    sellerSettlement: { findMany: jest.fn() },
+    seller: { findUnique: jest.fn<Promise<SellerFindUniqueResult>, [SellerFindUniqueArgs]>() },
+    store: { findMany: jest.fn<Promise<StoreFindManyResult>, [StoreFindManyArgs]>() },
+    order: { count: jest.fn<Promise<number>, [OrderCountArgs]>(), groupBy: jest.fn<Promise<unknown[]>, [unknown]>() },
+    orderItem: {
+      groupBy: jest.fn<Promise<OrderItemGroupByResult>, [OrderItemGroupByArgs]>(),
+      findMany: jest.fn<Promise<unknown[]>, [unknown]>(),
+      aggregate: jest.fn<Promise<OrderItemAggregateResult>, [OrderItemAggregateArgs]>(),
+    },
+    product: { findMany: jest.fn<Promise<ProductFindManyResult>, [unknown]>(), count: jest.fn<Promise<number>, [unknown]>() },
+    refund: { count: jest.fn<Promise<number>, [unknown]>(), aggregate: jest.fn<Promise<RefundAggregateResult>, [unknown]>(), findMany: jest.fn<Promise<unknown[]>, [unknown]>() },
+    return: { count: jest.fn<Promise<number>, [unknown]>(), groupBy: jest.fn<Promise<unknown[]>, [unknown]>() },
+    shipment: { groupBy: jest.fn<Promise<unknown[]>, [unknown]>(), findMany: jest.fn<Promise<unknown[]>, [unknown]>(), count: jest.fn<Promise<number>, [unknown]>() },
+    inventory: { findMany: jest.fn<Promise<unknown[]>, [InventoryFindManyArgs]>() },
+    sellerSettlement: { findMany: jest.fn<Promise<unknown[]>, [SellerSettlementFindManyArgs]>() },
   };
 }
 
@@ -63,11 +82,11 @@ describe('SellerAnalyticsService', () => {
     await service.overview(user, {});
 
     expect(prisma.seller.findUnique).toHaveBeenCalledWith({ where: { userId: user.id }, select: { id: true } });
-    const orderItemWhere = prisma.orderItem.aggregate.mock.calls[0][0].where;
-    expect(orderItemWhere.sellerId).toBe('seller_1');
+    const orderItemWhere = prisma.orderItem.aggregate.mock.calls[0]?.[0].where;
+    expect(orderItemWhere?.sellerId).toBe('seller_1');
 
-    const orderWhere = prisma.order.count.mock.calls[0][0].where;
-    expect(orderWhere.items.some.sellerId).toBe('seller_1');
+    const orderWhere = prisma.order.count.mock.calls[0]?.[0].where;
+    expect(orderWhere?.items?.some?.sellerId).toBe('seller_1');
   });
 
   it('never exposes another seller: sellerId in scoped where-clauses always matches the caller, ignoring any attempt to pass a foreign id via query filters', async () => {
@@ -100,7 +119,7 @@ describe('SellerAnalyticsService', () => {
 
   it('scopes inventory health to the seller own store ids', async () => {
     await service.inventory(user, { limit: 5 });
-    expect(prisma.inventory.findMany.mock.calls[0][0].where).toEqual({ storeId: { in: ['store_1'] } });
+    expect(prisma.inventory.findMany.mock.calls[0]?.[0].where).toEqual({ storeId: { in: ['store_1'] } });
   });
 
   it('produces a correctly scoped CSV export for products', async () => {
@@ -116,6 +135,6 @@ describe('SellerAnalyticsService', () => {
 
   it('scopes settlement exports to the caller seller id', async () => {
     await service.exportCsv(user, { type: 'settlements', from: '2026-06-01', to: '2026-06-30' });
-    expect(prisma.sellerSettlement.findMany.mock.calls[0][0].where.sellerId).toBe('seller_1');
+    expect(prisma.sellerSettlement.findMany.mock.calls[0]?.[0].where.sellerId).toBe('seller_1');
   });
 });
