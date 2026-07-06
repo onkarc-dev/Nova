@@ -227,11 +227,7 @@ export abstract class BaseAnalyticsQueryService {
   protected async categoryBrandBreakdown(
     where: Prisma.OrderItemWhereInput,
   ): Promise<{ categories: TopEntry[]; brands: TopEntry[] }> {
-    interface ProductRevenueRow {
-      productId: string;
-      _sum: { totalCents: number | null; quantity: number | null };
-    }
-    const rows: ProductRevenueRow[] = await this.prisma.orderItem.groupBy({
+    const rows = await this.prisma.orderItem.groupBy({
       by: ['productId'],
       where,
       _sum: { totalCents: true, quantity: true },
