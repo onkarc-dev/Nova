@@ -114,3 +114,67 @@ Notification hooks are non-blocking for payment, shipment, return, refund, and
 product moderation flows. SMS, WhatsApp, Resend, and AWS SES are provider
 placeholders until real credentials and production delivery policies are
 approved.
+
+## Phase 7 — Analytics & Business Intelligence Engine
+
+Implemented a marketplace analytics/BI foundation on top of existing operational
+tables (orders, order items, payments, refunds, returns, shipments, commission
+records, inventory) — not a separate data warehouse.
+
+Architecture:
+
+- `AnalyticsAggregationService` — pure, Prisma-free helpers: period resolution,
+  day/week/month bucket construction, O(1) direct-addressing bucket index lookup,
+  top-N ranking, and CSV serialization.
+- `BaseAnalyticsQueryService` — abstract class holding the actual Prisma queries
+  (revenue series, order status breakdown, shipment breakdown, return/refund
+  stats, top products, category/brand breakdown, inventory health) so the query
+  logic is written exactly once.
+- `AdminAnalyticsService` — extends the base with no scope restriction (platform-wide).
+- `SellerAnalyticsService` — extends the base, resolving `sellerId`/store ids from
+  the authenticated user and injecting that scope into every query. A seller can
+  never see another seller's data or platform-wide totals; no endpoint accepts a
+  client-supplied seller id.
+
+Admin APIs (`admin` role required): `GET /api/v1/admin/analytics/overview`,
+`.../revenue`, `.../orders`, `.../payments`, `.../shipments`, `.../returns`,
+`.../products`, `.../sellers`, `.../categories`, `.../inventory`, `.../export`.
+
+Seller APIs (`seller` role required): `GET /api/v1/seller/analytics/overview`,
+`.../revenue`, `.../orders`, `.../products`, `.../inventory`, `.../shipments`,
+`.../returns`, `.../export`.
+
+Time-series (`revenue`, and `orders` when `granularity` is passed) accept `from`,
+`to`, `granularity` (`day|week|month`), and (admin-only) `sellerId`, plus
+`storeId`/`categoryId`/`productId`, returning per-bucket
+`{ bucketStart, bucketEnd, grossSalesCents, netSalesCents, commissionCents, refundCents, orderCount, itemQuantity }`
+plus a period summary.
+
+`GET .../analytics/export?type=revenue|orders|products|settlements&from=&to=`
+streams a `text/csv` response directly (`@Res({ passthrough: false })`), bypassing
+the standard JSON success envelope.
+
+Metric definitions:
+
+- **GMV** = sum of order `totalCents` for orders placed in the period, excluding `CANCELLED` orders.
+- **Net revenue** = GMV − processed refund amount.
+- **Commission revenue** = sum of `CommissionRecord.commissionAmountCents` for records not `REVERSED`.
+- **Payment success rate** = captured/succeeded payments ÷ all payments created in the period.
+- **Return rate / refund rate** = return count / refund count ÷ total orders placed in the period.
+- **Low stock** = `0 < (onHand − reserved) <= safetyStock` at the product level (summed across variants/warehouses); **out of stock** = `(onHand − reserved) <= 0`.
+
+Limitations (documented, not silently papered over):
+
+- No `AnalyticsSnapshot`/materialized rollup table was added. Every request computes
+  live from bounded, indexed queries over the requested `from`/`to` window. This is
+  the right MVP tradeoff (always-fresh numbers, no new migration) but will need a
+  pre-aggregated rollup if BI query volume or history length grows significantly.
+- `Return.reason` and `Refund.reason` are free text, not a structured enum, so
+  "top return reasons" is an exact-string grouping rather than a true taxonomy.
+- No product view/click event stream exists yet, so product conversion rate is
+  returned as `null` rather than a fabricated number.
+- Category/brand and inventory rollups group in memory over a bounded, capped
+  result set (a few thousand rows); very large catalogs should page by
+  store/category or move to a materialized rollup in a later phase.
+- Recommendations, coupons/promotions, reviews/ratings, ML personalization, and a
+  full data warehouse are explicitly out of scope for this phase.

@@ -718,11 +718,194 @@ export interface SearchReindexResponseDto {
   indexedProducts: number;
 }
 
-export interface AnalyticsRevenueDto {
-  revenueCents: number;
+// ---------------------------------------------------------------------------
+// Phase 7 — Analytics & Business Intelligence
+// ---------------------------------------------------------------------------
+
+export type AnalyticsGranularity = 'day' | 'week' | 'month';
+export type AnalyticsExportType = 'revenue' | 'orders' | 'products' | 'settlements';
+
+export interface AnalyticsPeriodQuery {
+  from?: string;
+  to?: string;
+}
+
+export interface AnalyticsTimeSeriesQuery extends AnalyticsPeriodQuery {
+  granularity?: AnalyticsGranularity;
+  sellerId?: string;
+  storeId?: string;
+  categoryId?: string;
+  productId?: string;
+}
+
+export interface SellerAnalyticsTimeSeriesQuery extends AnalyticsPeriodQuery {
+  granularity?: AnalyticsGranularity;
+  storeId?: string;
+  categoryId?: string;
+  productId?: string;
+}
+
+export interface AnalyticsListQuery extends AnalyticsPeriodQuery {
+  limit?: number;
+}
+
+export interface AnalyticsExportQuery extends AnalyticsPeriodQuery {
+  type: AnalyticsExportType;
+}
+
+export interface RevenueTimeBucketDto {
+  bucketStart: string;
+  bucketEnd: string;
+  grossSalesCents: number;
+  netSalesCents: number;
+  commissionCents: number;
+  refundCents: number;
   orderCount: number;
-  paidPaymentCount: number;
+  itemQuantity: number;
+}
+
+export interface RevenueSummaryDto {
+  grossSalesCents: number;
+  netSalesCents: number;
+  commissionCents: number;
+  refundCents: number;
+  orderCount: number;
+  itemQuantity: number;
+}
+
+export interface AnalyticsRevenueDto {
+  from: string;
+  to: string;
+  granularity: AnalyticsGranularity;
+  buckets: RevenueTimeBucketDto[];
+  summary: RevenueSummaryDto;
+}
+
+export interface AnalyticsTopEntryDto {
+  id: string;
+  label: string;
+  revenueCents: number;
+  quantity: number;
+}
+
+export interface AdminOverviewDto {
+  period: { from: string; to: string };
+  gmvCents: number;
+  netRevenueCents: number;
+  commissionRevenueCents: number;
+  refundAmountCents: number;
+  totalOrders: number;
+  paidOrders: number;
+  cancelledOrders: number;
+  returnedOrders: number;
+  paymentSuccessRatePercent: number;
+  averageOrderValueCents: number;
+  activeSellers: number;
+  activeProducts: number;
+  lowStockProducts: number;
+  topSellers: Array<{ sellerId: string; businessName: string; grossSalesCents: number; commissionCents: number; netEarningsCents: number; orderItemCount: number }>;
+  topProducts: AnalyticsTopEntryDto[];
+  topCategories: AnalyticsTopEntryDto[];
+  shipmentStatusBreakdown: Record<string, number>;
+  returnRatePercent: number;
+  refundRatePercent: number;
+}
+
+export interface SellerOverviewDto {
+  period: { from: string; to: string };
+  grossSalesCents: number;
+  netSalesCents: number;
+  commissionCents: number;
+  refundAmountCents: number;
+  totalOrders: number;
+  byStatus: Record<string, number>;
+  averageOrderValueCents: number;
+  activeProductCount: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+  topProducts: AnalyticsTopEntryDto[];
+  shipmentStatusBreakdown: Record<string, number>;
+  returnRatePercent: number;
+  refundRatePercent: number;
+}
+
+export interface AnalyticsOrdersDto {
+  from: string;
+  to: string;
+  totalOrders: number;
+  byStatus: Record<string, number>;
+  buckets?: Array<{ bucketStart: string; bucketEnd: string; orderCount: number; itemQuantity: number }> | null;
+}
+
+export interface AnalyticsPaymentsDto {
+  from: string;
+  to: string;
+  created: number;
+  captured: number;
+  failed: number;
+  successRatePercent: number;
+  refundCount: number;
+  refundAmountCents: number;
+  byProvider: Array<{ provider: string; count: number; amountCents: number }>;
+  failedPaymentTrend: Array<{ bucketStart: string; bucketEnd: string; failedCount: number }>;
+}
+
+export interface AnalyticsShipmentsDto {
+  from: string;
+  to: string;
+  byStatus: Record<string, number>;
+  averageDeliveryHours: number | null;
+  delayedCount: number;
+}
+
+export interface AnalyticsReturnsDto {
+  from: string;
+  to: string;
   returnCount: number;
+  refundCount: number;
+  refundAmountCents: number;
+  returnRatePercent: number;
+  refundRatePercent: number;
+  topReturnReasons: Array<{ reason: string; count: number }>;
+}
+
+export interface AnalyticsProductsDto {
+  from: string;
+  to: string;
+  topByRevenue: AnalyticsTopEntryDto[];
+  topByQuantity: AnalyticsTopEntryDto[];
+  lowStockProducts: Array<{ productId: string; name: string; sellable: number; safetyStock: number }>;
+  lowStockCount: number;
+  outOfStockCount: number;
+  conversionRatePercent?: number | null;
+}
+
+export interface AnalyticsSellersDto {
+  from: string;
+  to: string;
+  topSellers: Array<{ sellerId: string; businessName: string; grossSalesCents: number; commissionCents: number; netEarningsCents: number; orderItemCount: number }>;
+}
+
+export interface AnalyticsCategoriesDto {
+  from: string;
+  to: string;
+  topCategories: AnalyticsTopEntryDto[];
+  topBrands: AnalyticsTopEntryDto[];
+}
+
+export interface AnalyticsInventoryDto {
+  totalProducts: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+  reservedTotal: number;
+  sellableTotal: number;
+  inventoryValueCentsEstimate: number;
+  lowStockProducts: Array<{ productId: string; name: string; sellable: number; safetyStock: number }>;
+}
+
+export interface AnalyticsExportResultDto {
+  csv: string;
+  filename: string;
 }
 
 export interface ReturnDto {

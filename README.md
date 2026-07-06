@@ -262,3 +262,17 @@ Nova now includes a production-safe shipment foundation for paid marketplace ord
 Shipment lifecycle: `PENDING -> PACKED -> READY_TO_SHIP -> SHIPPED -> IN_TRANSIT -> OUT_FOR_DELIVERY -> DELIVERED`, with supported failure/cancel and return-preparation statuses: `FAILED_DELIVERY`, `CANCELLED`, `RETURN_PICKUP_REQUESTED`, `RETURN_PICKED_UP`, `RETURN_IN_TRANSIT`, `RETURN_DELIVERED`.
 
 Manual provider is the default. Future providers can implement the delivery provider contract for Shiprocket, Delhivery, Porter, or local courier APIs without changing API controllers.
+
+### Phase 7 Analytics & Business Intelligence Engine
+
+Nova includes a marketplace analytics/BI foundation computed live from operational data (orders, payments, shipments, returns, commissions, inventory) — not a separate data warehouse.
+
+**Admin** (`/api/v1/admin/analytics/*`, requires `admin` role): `overview`, `revenue`, `orders`, `payments`, `shipments`, `returns`, `products`, `sellers`, `categories`, `inventory`, `export`.
+
+**Seller** (`/api/v1/seller/analytics/*`, requires `seller` role): `overview`, `revenue`, `orders`, `products`, `inventory`, `shipments`, `returns`, `export`. Every seller query resolves the caller's own `sellerId` server-side from the authenticated user — a seller can never request platform-wide data or another seller's numbers, regardless of query parameters supplied.
+
+Revenue/orders endpoints accept `from`, `to`, `granularity` (`day|week|month`), and (admin-only) `sellerId`, plus `storeId`/`categoryId`/`productId`, returning time-bucketed `{ bucketStart, bucketEnd, grossSalesCents, netSalesCents, commissionCents, refundCents, orderCount, itemQuantity }` series alongside a period summary.
+
+`GET .../analytics/export?type=revenue|orders|products|settlements&from=&to=` streams a `text/csv` file directly (not the standard JSON envelope).
+
+Known limitations: return reasons are grouped by exact free-text match (no structured taxonomy yet); product conversion rate is returned as `null` since no view/click event stream exists; analytics are computed live and bounded per request rather than pre-aggregated, which is fine at MVP scale but should move to a materialized rollup (e.g. an `AnalyticsSnapshot` table) if query volume grows.

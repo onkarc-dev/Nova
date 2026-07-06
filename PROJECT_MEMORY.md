@@ -1983,3 +1983,72 @@ wishlist batch is implemented and verified.
 - Added seller/admin/customer shipment APIs and API client/types support.
 - Notification phase preparation is represented as internal shipment event metadata hooks; no email/SMS queue was added.
 - Current limitation: no real Shiprocket/Delhivery/Porter API calls; manual provider is the only active provider.
+
+# Implementation Session - 2026-07-06 - Phase 7 Analytics & Business Intelligence Engine
+
+Completed:
+
+- Rebuilt `src/analytics` around three clean services: `AnalyticsAggregationService`
+  (pure, dependency-free bucketing/ranking/CSV helpers), `BaseAnalyticsQueryService`
+  (abstract, Prisma-backed shared query builders), and its two concrete subclasses
+  `AdminAnalyticsService` (platform-wide) and `SellerAnalyticsService` (seller-scoped).
+- Added 10 admin endpoints and 8 seller endpoints under `/api/v1/admin/analytics/*`
+  and `/api/v1/seller/analytics/*` (see README and docs/cadde-store-mvp.md for the
+  full list and response shapes).
+- Time-series revenue endpoint supports `granularity=day|week|month` with O(1)
+  direct-addressing bucket assignment (no DB-side date-trunc dependency).
+- CSV export (`GET .../analytics/export?type=revenue|orders|products|settlements`)
+  streams `text/csv` directly via `@Res({ passthrough: false })`, bypassing the
+  global JSON response envelope.
+- Seller analytics resolve `sellerId` server-side from the authenticated user only;
+  no endpoint accepts a caller-supplied seller/store id that could leak another
+  seller's data. Covered by dedicated scoping tests.
+- Updated `packages/types` and `packages/api-client` with the full analytics type
+  surface and typed client methods (including a `requestCsv` helper for exports).
+- Analytics are computed live from operational tables for this MVP — no new
+  `AnalyticsSnapshot`/warehouse table or Prisma migration was added (deliberate,
+  documented decision; see docs/cadde-store-mvp.md "Future BI path").
+
+Files Changed:
+
+- `src/analytics/analytics-aggregation.service.ts` (new)
+- `src/analytics/base-analytics-query.service.ts` (new)
+- `src/analytics/admin-analytics.service.ts` (new, replaces old `analytics.service.ts`)
+- `src/analytics/seller-analytics.service.ts` (new)
+- `src/analytics/dto/analytics-query.dto.ts` (new)
+- `src/analytics/interfaces/analytics.interfaces.ts` (new)
+- `src/analytics/analytics.controller.ts` (rewritten)
+- `src/analytics/analytics.module.ts` (updated providers)
+- `src/analytics/analytics-aggregation.service.spec.ts`, `admin-analytics.service.spec.ts`,
+  `seller-analytics.service.spec.ts`, `analytics.controller.spec.ts` (new tests)
+- `packages/types/src/index.ts` (analytics DTOs)
+- `packages/api-client/src/index.ts` (analytics client methods + CSV export helper)
+- `README.md`, `docs/cadde-store-mvp.md`, `PROJECT_MEMORY.md` (this entry)
+
+Database Changes: None. No new models/migrations; deliberately computed-live for MVP (see above).
+
+APIs Added:
+
+- Admin: `GET /api/v1/admin/analytics/{overview,revenue,orders,payments,shipments,returns,products,sellers,categories,inventory,export}`
+- Seller: `GET /api/v1/seller/analytics/{overview,revenue,orders,products,inventory,shipments,returns,export}`
+
+Tests Added: see file list above — aggregation math, admin overview/products/sellers/categories/export,
+seller ownership scoping (including "never leaks another seller"), and controller role-metadata checks.
+
+Remaining / Known Limitations:
+
+- Sandboxed dev container has no network egress to `binaries.prisma.sh`, so
+  `db:generate`/`db:validate`/`db:migrate`/`typecheck`/`build` could not be executed
+  end-to-end in this session (pre-existing environment limitation, confirmed present
+  before any Phase 7 change). Needs to be run in an environment with full network
+  access before merging; see final report in the conversation for exact commands.
+- Return reasons are free text, so return/refund "reason" grouping is coarse
+  (exact-string match), not a structured taxonomy.
+- No product view/click event stream exists, so product conversion rate is
+  intentionally returned as `null` rather than fabricated.
+- Inventory/category aggregation is computed in memory over bounded query results
+  (capped at a few thousand rows); very large catalogs will need pagination or a
+  materialized rollup in a future phase.
+
+Next Goal: Phase 8 — likely Coupons/Promotions or Reviews/Ratings (explicitly out of
+scope for Phase 7), or a materialized analytics rollup if BI query volume grows.

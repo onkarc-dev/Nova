@@ -18,7 +18,23 @@ import type {
   FinancePeriodQueryDto,
   GenerateSettlementsRequestDto,
   ExpirePaymentsResponseDto,
+  AdminOverviewDto,
+  AnalyticsCategoriesDto,
+  AnalyticsExportQuery,
+  AnalyticsExportResultDto,
+  AnalyticsInventoryDto,
+  AnalyticsListQuery,
+  AnalyticsOrdersDto,
+  AnalyticsPaymentsDto,
+  AnalyticsPeriodQuery,
+  AnalyticsProductsDto,
+  AnalyticsReturnsDto,
   AnalyticsRevenueDto,
+  AnalyticsSellersDto,
+  AnalyticsShipmentsDto,
+  AnalyticsTimeSeriesQuery,
+  SellerAnalyticsTimeSeriesQuery,
+  SellerOverviewDto,
   InventoryValidationDto,
   LegacyApiErrorEnvelope,
   LegacyApiResponseEnvelope,
@@ -156,7 +172,36 @@ export function createApiClient(options: ApiClientOptions = {}) {
     return unwrapResponse<T>(payload);
   }
 
+  /** Fetches a CSV export endpoint (raw text/csv body, not the JSON envelope) and returns the filename from Content-Disposition. */
+  async function requestCsv(path: string, requestOptions: RequestOptions = {}): Promise<AnalyticsExportResultDto> {
+    const { auth, body: _requestBody, ...fetchOptions } = requestOptions;
+    const headers = new Headers(fetchOptions.headers);
+    if (auth !== false) {
+      const token = await options.getAccessToken?.();
+      if (token) headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    let response: Response;
+    try {
+      response = await fetcher(`${baseUrl}${normalizePath(path)}`, { ...fetchOptions, headers, method: fetchOptions.method ?? 'GET' });
+    } catch {
+      throw new NovaApiError('Unable to reach the Nova API. Check that the backend is running.', 0, 'API_UNAVAILABLE');
+    }
+
+    if (!response.ok) {
+      const payload = await parseJson(response);
+      if (response.status === 401) await options.onUnauthorized?.();
+      throw normalizeApiError(payload, response.status);
+    }
+
+    const csv = await response.text();
+    const disposition = response.headers.get('Content-Disposition') ?? '';
+    const filename = /filename="?([^"]+)"?/.exec(disposition)?.[1] ?? 'export.csv';
+    return { csv, filename };
+  }
+
   return {
+
     get: <T>(path: string, options?: RequestOptions) => request<T>(path, { ...options, method: 'GET' }),
     post: <T>(path: string, body?: unknown, options?: RequestOptions) =>
       request<T>(path, { ...options, method: 'POST', body }),
@@ -288,9 +333,22 @@ export function createApiClient(options: ApiClientOptions = {}) {
           request<ShipmentDto>(`/api/v1/seller/shipments/${encodeURIComponent(shipmentId)}/tracking`, { ...options, method: 'PATCH', body }),
       },
       analytics: {
-        revenue: (options?: RequestOptions) =>
-          request<AnalyticsRevenueDto>('/api/v1/seller/analytics/revenue', { ...options, method: 'GET' }),
-        products: (options?: RequestOptions) => request<unknown[]>('/api/v1/seller/analytics/products', { ...options, method: 'GET' }),
+        overview: (query?: AnalyticsPeriodQuery, options?: RequestOptions) =>
+          request<SellerOverviewDto>(withQuery('/api/v1/seller/analytics/overview', query), { ...options, method: 'GET' }),
+        revenue: (query?: SellerAnalyticsTimeSeriesQuery, options?: RequestOptions) =>
+          request<AnalyticsRevenueDto>(withQuery('/api/v1/seller/analytics/revenue', query), { ...options, method: 'GET' }),
+        orders: (query?: SellerAnalyticsTimeSeriesQuery, options?: RequestOptions) =>
+          request<AnalyticsOrdersDto>(withQuery('/api/v1/seller/analytics/orders', query), { ...options, method: 'GET' }),
+        products: (query?: AnalyticsListQuery, options?: RequestOptions) =>
+          request<AnalyticsProductsDto>(withQuery('/api/v1/seller/analytics/products', query), { ...options, method: 'GET' }),
+        inventory: (query?: AnalyticsListQuery, options?: RequestOptions) =>
+          request<AnalyticsInventoryDto>(withQuery('/api/v1/seller/analytics/inventory', query), { ...options, method: 'GET' }),
+        shipments: (query?: AnalyticsPeriodQuery, options?: RequestOptions) =>
+          request<AnalyticsShipmentsDto>(withQuery('/api/v1/seller/analytics/shipments', query), { ...options, method: 'GET' }),
+        returns: (query?: AnalyticsPeriodQuery, options?: RequestOptions) =>
+          request<AnalyticsReturnsDto>(withQuery('/api/v1/seller/analytics/returns', query), { ...options, method: 'GET' }),
+        export: (query: AnalyticsExportQuery, options?: RequestOptions) =>
+          requestCsv(withQuery('/api/v1/seller/analytics/export', query), { ...options, method: 'GET' }),
       },
       orders: {
         list: (query?: SellerOrderQueryDto, options?: RequestOptions) =>
@@ -342,10 +400,28 @@ export function createApiClient(options: ApiClientOptions = {}) {
           }),
       },
       analytics: {
-        revenue: (options?: RequestOptions) =>
-          request<AnalyticsRevenueDto>('/api/v1/admin/analytics/revenue', { ...options, method: 'GET' }),
-        categories: (options?: RequestOptions) => request<unknown[]>('/api/v1/admin/analytics/categories', { ...options, method: 'GET' }),
-        products: (options?: RequestOptions) => request<unknown[]>('/api/v1/admin/analytics/products', { ...options, method: 'GET' }),
+        overview: (query?: AnalyticsPeriodQuery, options?: RequestOptions) =>
+          request<AdminOverviewDto>(withQuery('/api/v1/admin/analytics/overview', query), { ...options, method: 'GET' }),
+        revenue: (query?: AnalyticsTimeSeriesQuery, options?: RequestOptions) =>
+          request<AnalyticsRevenueDto>(withQuery('/api/v1/admin/analytics/revenue', query), { ...options, method: 'GET' }),
+        orders: (query?: AnalyticsTimeSeriesQuery, options?: RequestOptions) =>
+          request<AnalyticsOrdersDto>(withQuery('/api/v1/admin/analytics/orders', query), { ...options, method: 'GET' }),
+        payments: (query?: AnalyticsPeriodQuery, options?: RequestOptions) =>
+          request<AnalyticsPaymentsDto>(withQuery('/api/v1/admin/analytics/payments', query), { ...options, method: 'GET' }),
+        shipments: (query?: AnalyticsPeriodQuery, options?: RequestOptions) =>
+          request<AnalyticsShipmentsDto>(withQuery('/api/v1/admin/analytics/shipments', query), { ...options, method: 'GET' }),
+        returns: (query?: AnalyticsPeriodQuery, options?: RequestOptions) =>
+          request<AnalyticsReturnsDto>(withQuery('/api/v1/admin/analytics/returns', query), { ...options, method: 'GET' }),
+        products: (query?: AnalyticsListQuery, options?: RequestOptions) =>
+          request<AnalyticsProductsDto>(withQuery('/api/v1/admin/analytics/products', query), { ...options, method: 'GET' }),
+        sellers: (query?: AnalyticsListQuery, options?: RequestOptions) =>
+          request<AnalyticsSellersDto>(withQuery('/api/v1/admin/analytics/sellers', query), { ...options, method: 'GET' }),
+        categories: (query?: AnalyticsListQuery, options?: RequestOptions) =>
+          request<AnalyticsCategoriesDto>(withQuery('/api/v1/admin/analytics/categories', query), { ...options, method: 'GET' }),
+        inventory: (query?: AnalyticsListQuery, options?: RequestOptions) =>
+          request<AnalyticsInventoryDto>(withQuery('/api/v1/admin/analytics/inventory', query), { ...options, method: 'GET' }),
+        export: (query: AnalyticsExportQuery, options?: RequestOptions) =>
+          requestCsv(withQuery('/api/v1/admin/analytics/export', query), { ...options, method: 'GET' }),
       },
       finance: {
         commissions: (query?: CommissionQueryDto, options?: RequestOptions) =>
