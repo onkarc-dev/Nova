@@ -249,24 +249,22 @@ export abstract class BaseAnalyticsQueryService {
     const brandTotals = new Map<string, TopEntry>();
     for (const item of orderItems) {
       const category = item.product.category;
-      if (category) {
-        const existing = categoryTotals.get(category.id);
-        categoryTotals.set(category.id, {
-          id: category.id,
-          label: category.name,
-          revenueCents: (existing?.revenueCents ?? 0) + item.totalCents,
-          quantity: (existing?.quantity ?? 0) + item.quantity,
-        });
-      }
+      const existingCategory = categoryTotals.get(category.id);
+      categoryTotals.set(category.id, {
+        id: category.id,
+        label: category.name,
+        revenueCents: (existingCategory?.revenueCents ?? 0) + item.totalCents,
+        quantity: (existingCategory?.quantity ?? 0) + item.quantity,
+      });
 
       const brand = item.product.brand;
       if (brand) {
-        const existing = brandTotals.get(brand.id);
+        const existingBrand = brandTotals.get(brand.id);
         brandTotals.set(brand.id, {
           id: brand.id,
           label: brand.name,
-          revenueCents: (existing?.revenueCents ?? 0) + item.totalCents,
-          quantity: (existing?.quantity ?? 0) + item.quantity,
+          revenueCents: (existingBrand?.revenueCents ?? 0) + item.totalCents,
+          quantity: (existingBrand?.quantity ?? 0) + item.quantity,
         });
       }
     }
