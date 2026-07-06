@@ -12,6 +12,16 @@ interface OrderItemFilters {
   categoryId?: string | undefined;
 }
 
+interface SellerRevenueRow {
+  sellerId: string;
+  _sum: {
+    grossAmountCents: number | null;
+    commissionAmountCents: number | null;
+    netAmountCents: number | null;
+  };
+  _count: { _all: number };
+}
+
 @Injectable()
 export class AdminAnalyticsService extends BaseAnalyticsQueryService {
   // Explicit forwarding constructor: required so Nest emits design:paramtypes metadata for
@@ -295,7 +305,7 @@ export class AdminAnalyticsService extends BaseAnalyticsQueryService {
   }
 
   private async topSellers(where: Prisma.CommissionRecordWhereInput, limit: number) {
-    const rows = await this.prisma.commissionRecord.groupBy({
+    const rawRows: unknown = await this.prisma.commissionRecord.groupBy({
       by: ['sellerId'],
       where,
       _sum: { grossAmountCents: true, commissionAmountCents: true, netAmountCents: true },
@@ -303,6 +313,7 @@ export class AdminAnalyticsService extends BaseAnalyticsQueryService {
       orderBy: { _sum: { grossAmountCents: 'desc' } },
       take: limit,
     });
+    const rows = Array.isArray(rawRows) ? rawRows.filter((row): row is SellerRevenueRow => this.isSellerRevenueRow(row)) : [];
     if (rows.length === 0) return [];
     const sellers = await this.prisma.seller.findMany({ where: { id: { in: rows.map((row) => row.sellerId) } }, select: { id: true, businessName: true } });
     const nameById = new Map(sellers.map((seller) => [seller.id, seller.businessName]));
@@ -314,6 +325,12 @@ export class AdminAnalyticsService extends BaseAnalyticsQueryService {
       netEarningsCents: row._sum.netAmountCents ?? 0,
       orderItemCount: row._count._all,
     }));
+  }
+
+  private isSellerRevenueRow(row: unknown): row is SellerRevenueRow {
+    if (typeof row !== 'object' || row === null) return false;
+    const record = row as Record<string, unknown>;
+    return typeof record.sellerId === 'string' && typeof record._sum === 'object' && record._sum !== null && typeof record._count === 'object' && record._count !== null;
   }
 
   private orderItemWhere(period: { from: Date; to: Date }, filters: OrderItemFilters): Prisma.OrderItemWhereInput {
